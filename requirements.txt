@@ -4,3 +4,5 @@ torchaudio
 numpy
 scipy
 matplotlib
+black
+imageio
