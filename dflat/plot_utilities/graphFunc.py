@@ -10,7 +10,7 @@ plt.rcParams["ps.fonttype"] = 42.0
 
 fontsize_text = 10.0
 fontsize_title = 12.0
-fontsize_ticks = 14.0
+fontsize_ticks = 10.0
 fontsize_cbar = 10.0
 fontsize_legend = 12.0
 
@@ -33,7 +33,6 @@ def addColorbar(
     fontsize_ticks=fontsize_ticks,
 ):
     divider = make_axes_locatable(thisax)
-
     cax = divider.append_axes("right", size="8%", pad=0.05)
     cbar = thisfig.colorbar(thisim, cax=cax, orientation="vertical")
     cbar.ax.get_yaxis().labelpad = 15
@@ -74,11 +73,12 @@ def formatPlots(
     thisax.set_ylabel(ylabel, fontsize=fontsize_text)
     thisax.set_title(title, fontsize=fontsize_title)
 
+    if imhandle == None:
+        imhandle = thisax.images[0]
+
     # Add x and y axis coordinates
     if len(xgrid_vec) != 0 and len(ygrid_vec) != 0:
-        imhandle.set_extent(
-            [np.min(xgrid_vec), np.max(xgrid_vec), np.max(ygrid_vec), np.min(ygrid_vec)]
-        )
+        imhandle.set_extent([np.min(xgrid_vec), np.max(xgrid_vec), np.max(ygrid_vec), np.min(ygrid_vec)])
 
     # remove axis labels and ticks
     if rmvxLabel:
@@ -124,18 +124,12 @@ def formatPlots(
     return
 
 
-def gif_from_saved_images(
-    filepath, filetag, savename, fps, deleteFrames=True, verbose=False
-):
+def gif_from_saved_images(filepath, filetag, savename, fps, deleteFrames=True, verbose=False):
     print("Call GIF generator")
     images = []
 
-    png_files = [
-        f for f in os.listdir(filepath) if f.startswith(filetag) and f.endswith(".png")
-    ]
-    png_files = sorted(
-        png_files, key=lambda f: os.path.getmtime(os.path.join(filepath, f))
-    )
+    png_files = [f for f in os.listdir(filepath) if f.startswith(filetag) and f.endswith(".png")]
+    png_files = sorted(png_files, key=lambda f: os.path.getmtime(os.path.join(filepath, f)))
     for file in png_files:
         file_path = os.path.join(filepath, file)
         images.append(Image.open(file_path))
