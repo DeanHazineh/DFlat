@@ -1,0 +1,4 @@
+metasurface_library/validation_scripts/output_library/**
+fourier_layer/private_ms_initialization.py
+fourier_layer/validation_scripts/**.pdf
+fourier_layer/validation_scripts/**.png
