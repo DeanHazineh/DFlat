@@ -6,3 +6,4 @@ scipy
 matplotlib
 black
 imageio
+scikit-learn
