@@ -5,7 +5,7 @@ Some improvements in this new software release include the following:
 - The default datatype is changed from float64 to float32 substantially improving memory usage and efficiency. To ensure accuracy of calculations, the fourier layer also adopts mixed precision (switching to float64 for only the minimal parts of the calculation that require it). 
 - For the time being, the built-in rcwa solver has been removed. Alongside a new paper to be released in the near future, DFlat will incorporate a new strategy for freeform metasurface optimization. This change reflects a new direction/vision for DFlat's usage
 - We also add several improvements to the usability and code structuring. Writing your optimized metasurface designs to a GDS file ready for fabrication is now much more straight-forward and easy.
-- Installation is made easier. Datafiles will now be hosted in dropbox and will be automatically installed and unpacked to the right locations when the install function is called. This makes it much easier to share and store this package.
+- Installation is made easier. Datafiles will now be hosted in dropbox and will be automatically installed and unpacked to the right locations when the install function is called. This makes the package light-weight and easier to distribute. 
 
 <div align="center">
   <img src=/docs/imgs/DFlat_Long.png alt="Dflat" width="500"/>
