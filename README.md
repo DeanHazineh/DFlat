@@ -1,5 +1,4 @@
 # DFlat-pytorch
-## Coming In A Few Weeks. A full port of DFlat-tensorflow to Pytorch with substantial speed and memory improvements!
 
 <div align="center">
   <img src=/docs/imgs/DFlat_Long.png alt="Dflat" width="500"/>
