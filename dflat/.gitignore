@@ -1,4 +1,7 @@
-metasurface_library/validation_scripts/output_library/**
-fourier_layer/private_ms_initialization.py
-fourier_layer/validation_scripts/**.pdf
-fourier_layer/validation_scripts/**.png
+**output/
+**.png
+**.pdf
+fourier_layer/core/validation_scripts/**
+metasurface_library/core/pregen_lookup_tables**
+metasurface_library/core/raw_meta_libraries**
+neural_optical_layer/core/trained_MLP_models/**

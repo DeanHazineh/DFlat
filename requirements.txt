@@ -1,9 +1,0 @@
-torch
-torchvision
-torchaudio
-numpy
-scipy
-matplotlib
-black
-imageio
-scikit-learn
