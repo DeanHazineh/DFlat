@@ -24,9 +24,37 @@ Some improvements in this new software release include the following:
 D-Flat provides users with:
 - A validated, auto-differentiable framework for optical field propagation and rendering built on pytorch
 - Pre-trained, efficient neural models to describe the optical response of metasurface cells
-- An auto-differentiable field solver (RCWA) that is easy to use and call
+- An easy platform for sharing metasurface libraries 
 
 By treating optical layers in the same fashion as standard, differentiable neural layers, deep learning pipelines can be built to simultaneously optimize optical hardware and ML computational back-ends for the next generation of computational imaging devices.
 
-DFlat is also available on tensorflow at (<a href="https://github.com/DeanHazineh/DFlat-tensorflow/tree/main" target="_blank">DFlat-tensorflow</a>). Long-term support will only be provided for the pytorch version of the software.   
+An older version of DFlat is also available on tensorflow at (<a href="https://github.com/DeanHazineh/DFlat-tensorflow/tree/main" target="_blank">DFlat-tensorflow</a>). Long-term support will only be provided for this pytorch version of the software.   
+
+### Installation
+To install this software, run the following code at the terminal to clone and run the build: 
+```
+git clone https://github.com/DeanHazineh/DFlat
+pip install .
+```
+NOTE: As a courtesy, be aware that the install function in setup.py will execute code to download files, unzip, move, and delete temporary folders. If you do not want this functionality, comment out the lines that override the standard install behavior and run the setup_execute_get_data.py script yourself. 
+
+
+## Credits and Acknowledgements:
+If you utilize DFlat or included data sets for your own work, please cite it by copying:
+
+```
+@INPROCEEDINGS{Hazineh2023,
+  Author = {Dean Hazineh and Soon Wei Daniel Lim and Qi Guo and Federico Capasso and Todd Zickler},
+  booktitle = {2023 IEEE International Conference on Computational Photography (ICCP)}, 
+  Title = {Polarization Multi-Image Synthesis with Birefringent Metasurfaces},
+  Year = {2023},
+}
+```
+
+## Contact:
+This repository is intended to be accessible and community driven. It may not be fully error-proof.
+If you have improvements, fixes, or contributions, please branch and initiate a merge request to master (or email me)!
+If you are interested in joining the team or working on helping to develop DFlat or applications, feel free to reach out. 
+
+For any questions, functionality requests, or other concerns, don't hesitate to contact me at dhazineh@g.harvard.edu. 
 
