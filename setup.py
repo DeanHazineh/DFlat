@@ -4,19 +4,13 @@ from setuptools import setup, find_packages, Command
 from setuptools.command.install import install
 from setuptools.command.develop import develop
 
+import subprocess
 
-class CleanCommand(Command):
-    user_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        shutil.rmtree("build", ignore_errors=True)
-        print("Removed the build directory")
+# Ensure requests is installed before anything else.
+try:
+    import requests
+except ImportError:
+    subprocess.check_call(["pip", "install", "requests"])
 
 
 class CustomInstallCommand(install):
@@ -24,13 +18,9 @@ class CustomInstallCommand(install):
 
     def run(self):
         install.run(self)
-
         from setup_execute_get_data import execute_data_management
 
         execute_data_management()  # Call your custom function
-
-        shutil.rmtree("build", ignore_errors=True)
-        print("Removed the build directory")
 
 
 class CustomDevelopCommand(develop):
@@ -38,13 +28,9 @@ class CustomDevelopCommand(develop):
 
     def run(self):
         develop.run(self)
-
         from setup_execute_get_data import execute_data_management
 
         execute_data_management()  # Call your custom function
-
-        shutil.rmtree("build", ignore_errors=True)
-        print("Removed the build directory")
 
 
 if __name__ == "__main__":
@@ -55,6 +41,5 @@ if __name__ == "__main__":
         cmdclass={
             "develop": CustomDevelopCommand,
             "install": CustomInstallCommand,
-            "clean": CleanCommand,
         },
     )

@@ -2,6 +2,7 @@ import zipfile
 import os
 import shutil
 
+
 DROPBOX_LINK = "https://www.dropbox.com/sh/jyubstf963x34jl/AADpVbN3dTSxhVOo3Hy1m2_8a?dl=1"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEST_PATH = os.path.join(SCRIPT_DIR, "all_data.zip")
@@ -37,6 +38,7 @@ def unpack_and_move():
         "dflat/metasurface_library/core/",
         "dflat/fourier_layer/core/",
         "dflat/neural_optical_layer/core/",
+        "dflat/physical_optical_layer/core/",
     ]
 
     for idx, zfile in enumerate(zip_file):
@@ -57,7 +59,6 @@ def execute_data_management():
     print("Moving data files to dflat folders")
     unpack_and_move()
 
-    # remove the zip file
     print("Cleaning and deleting the initial zip file")
     os.remove(DEST_PATH)
     shutil.rmtree(UNZIP_PATH)
@@ -65,7 +66,3 @@ def execute_data_management():
     print("Data retrieving finished")
 
     return
-
-
-if __name__ == "__main__":
-    execute_data_management()
