@@ -34,7 +34,7 @@ An older version of DFlat is also available on tensorflow at (<a href="https://g
 To install this software, run the following code at the terminal to clone and run the build: 
 ```
 git clone https://github.com/DeanHazineh/DFlat
-pip install .
+python setup.py install
 ```
 NOTE: As a courtesy, be aware that the install function in setup.py will execute code to download files, unzip, move, and delete temporary folders. If you do not want this functionality, comment out the lines that override the standard install behavior and run the setup_execute_get_data.py script yourself. 
 
