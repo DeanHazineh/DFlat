@@ -30,13 +30,17 @@ By treating optical layers in the same fashion as standard, differentiable neura
 
 An older version of DFlat is also available on tensorflow at (<a href="https://github.com/DeanHazineh/DFlat-tensorflow/tree/main" target="_blank">DFlat-tensorflow</a>). Long-term support will only be provided for this pytorch version of the software.   
 
-### Installation
+## Installation
 To install this software, run the following code at the terminal to clone and run the build: 
 ```
 git clone https://github.com/DeanHazineh/DFlat-pytorch.git
 pip install .
 ```
 NOTE: As a courtesy, be aware that the install function in setup.py will execute code to download files, unzip, move, and delete temporary folders. If you do not want this functionality, comment out the lines that override the standard install behavior and run the setup_execute_get_data.py script yourself. 
+
+## Example Code
+You can test Dflat on google collab. Provided are some example scripts:
+- <a href="https://colab.research.google.com/drive/18v2JYvcYnciRF1XgFGvdZDo8Ep5fRV6H?usp=sharing" target="_blank">Demo_polychromatic_focusing_nanofins.ipynb</a>
 
 
 ## Credits and Acknowledgements:
