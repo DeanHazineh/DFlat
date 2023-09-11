@@ -67,7 +67,7 @@ def assemble_nanocylinder_gds(inputs, cell_size, savepath, gds_unit=1e-6, gds_pr
     ###
     end = time.time()
     print("Completed writing and saving metasurface GDS File: Time: ", end - start)
-    del lib.cell_dict["MAIN"]
+    del cell
     return
 
 
@@ -106,6 +106,6 @@ def assemble_nanofins_gds(inputs, cell_size, savepath, gds_unit=1e-6, gds_precis
     ###
     end = time.time()
     print("Completed writing and saving metasurface GDS File: Time: ", end - start)
-    del lib.cell_dict["MAIN"]
+    del cell
 
     return
