@@ -1,0 +1,11 @@
+numpy
+pytest
+pytest-cov
+torch 
+torchvision 
+torchaudio
+scipy
+matplotlib
+pyhank
+einops
+omegaconf
