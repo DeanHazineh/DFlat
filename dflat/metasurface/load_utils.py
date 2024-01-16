@@ -4,13 +4,14 @@ import importlib
 import torch
 
 
-def load_optical_model(config_rel_path, ckpt_path=None):
-    config_path = pkg_resources.resource_filename("dflat", config_rel_path)
+def load_optical_model(config_path, ckpt_path=None):
+    config_path = pkg_resources.resource_filename("dflat", config_path)
     config = OmegaConf.load(config_path)
     optical_model = instantiate_from_config(config.model)
 
     # If given, initialize strict from a checkpoint
     if ckpt_path is not None:
+        ckpt_path = pkg_resources.resource_filename("dflat", ckpt_path)
         print(f"Loading from checkpoint {ckpt_path}")
         sd = torch.load(ckpt_path, map_location="cpu")["state_dict"]
         _, unexpected = optical_model.load_state_dict(sd, strict=True)
@@ -18,17 +19,18 @@ def load_optical_model(config_rel_path, ckpt_path=None):
     return optical_model
 
 
-def load_trainer(config_rel_path):
-    config_path = pkg_resources.resource_filename("dflat", config_rel_path)
+def load_trainer(config_path):
+    config_path = pkg_resources.resource_filename("dflat", config_path)
     config = OmegaConf.load(config_path)
 
     config_model = config.model
     config_trainer = config.trainer
+    ckpt_path = pkg_resources.resource_filename("dflat", config_trainer["ckpt_path"])
 
     trainer = get_obj_from_str(config_trainer["target"])(
         config_model,
-        config_trainer["ckpt_path"],
-        config_trainer.get("params", dict()),
+        ckpt_path,
+        **config_trainer.get("params", dict()),
     )
     return trainer
 
@@ -43,6 +45,7 @@ def instantiate_from_config(config_model, ckpt_path=None, strict=False):
 
     # Get model checkpoint
     if ckpt_path is not None and ckpt_path != "None":
+        ckpt_path = pkg_resources.resource_filename("dflat", ckpt_path)
         print(
             f"Target: {config_model['target']} Loading from checkpoint {ckpt_path} as strict={strict}"
         )

@@ -9,3 +9,5 @@ matplotlib
 pyhank
 einops
 omegaconf
+tqdm
+pandas

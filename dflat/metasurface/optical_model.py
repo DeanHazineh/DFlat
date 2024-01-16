@@ -15,9 +15,11 @@ class NeuralCells(nn.Module):
         self.model = self._initialize_model(nn_config, trainable_model)
         self.base_library = self._initialize_base(base_lib)
         self.param_limits = self.base_library.param_limits
+        self.loss = nn.L1Loss()
 
     def training_step(self, x, y):
-        return
+        pred = self.model(x)
+        return self.loss(pred, y)
 
     def forward(self, x):
         # Call the model, reshape to sets of 3 and convert to real trans, phase

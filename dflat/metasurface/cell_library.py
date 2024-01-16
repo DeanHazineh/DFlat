@@ -131,7 +131,7 @@ class Nanofins_TiO2_U350nm_H600nm:
 
         return
 
-    def dataloader(self, test_split=0.15, batch_size=256):
+    def dataloader(self, test_split=0.15, batch_size=None):
         assert test_split < 1.0
         if not self.loaded:
             self.load_data()
