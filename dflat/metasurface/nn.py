@@ -13,13 +13,11 @@ class VanillaMLP(nn.Module):
         super().__init__()
         self.blocks = nn.ModuleList()
 
-        self.blocks.append(nn.Linear(in_channels, channels[0]))
-        chi = channels[0]
-
+        chi = in_channels
         for ch in channels:
             layer = []
             layer.append(nn.Linear(chi, ch))
-            layer.append(nn.GELU())
+            layer.append(nn.LeakyReLU(0.01))
             self.blocks.append(nn.Sequential(*layer))
             chi = ch
 

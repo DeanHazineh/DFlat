@@ -11,7 +11,6 @@ def load_optical_model(config_path, ckpt_path=None):
     config = OmegaConf.load(config_path)
     optical_model = instantiate_from_config(config.model)
 
-    # If given, initialize strict from a checkpoint
     if ckpt_path is not None:
         ckpt_path = pkg_resources.resource_filename("dflat", ckpt_path)
         print(f"Loading from checkpoint {ckpt_path}")

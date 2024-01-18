@@ -54,15 +54,16 @@ class NeuralCells(nn.Module):
         torch_zero = torch.tensor(0.0, dtype=x.dtype).to(device=x.device)
 
         x = rearrange(x, "b h w c -> (b h w) c")
-        tile = x.shape[0]
         out = []
         for li in lam:
-            out.append(self.model(torch.cat((x, li.repeat(tile, 1)), dim=1)))
+            out.append(self.model(torch.cat((x, li.repeat(x.shape[0], 1)), dim=1)))
         out = torch.stack(out)
+
         g = int(out.shape[-1] / 3)
         out = rearrange(
-            out, "l (b h w) (g c3) -> b l g h w c3", g=g, c3=3, b=b, h=h, w=w
+            out, "l (b h w) (g c3) -> l b h w g c3", g=g, c3=3, b=b, h=h, w=w
         )
+
         out = torch.complex(out[..., 0], torch_zero) * torch.exp(
             torch.complex(torch_zero, torch.atan2(out[..., 2], out[..., 1]))
         )
