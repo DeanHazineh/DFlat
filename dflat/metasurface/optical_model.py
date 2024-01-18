@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-from .load_utils import instantiate_from_config, get_obj_from_str
+from einops import rearrange
+from .load_utils import instantiate_from_config
 
 
 def disabled_train(self, mode=True):
@@ -10,23 +11,63 @@ def disabled_train(self, mode=True):
 
 
 class NeuralCells(nn.Module):
-    def __init__(self, nn_config, base_lib, trainable_model=False):
+    def __init__(self, nn_config, param_bounds, trainable_model=False):
         super().__init__()
         self.model = self._initialize_model(nn_config, trainable_model)
-        self.base_library = self._initialize_base(base_lib)
-        self.param_limits = self.base_library.param_limits
+        self.param_bounds = param_bounds
         self.loss = nn.L1Loss()
 
     def training_step(self, x, y):
         pred = self.model(x)
         return self.loss(pred, y)
 
-    def forward(self, x):
-        # Call the model, reshape to sets of 3 and convert to real trans, phase
-        x = torch.tensor(x, torch.float32)
-        y = self.model(x)
+    def forward(self, params, wavelength, pre_normalized=True):
+        # params will be in a lens shape Batch, H, W, Channels
+        # returns shape batch, g, lam, h, w,
+        num_ch = params.shape[-1]
+        assert num_ch == (
+            len(self.param_bounds) - 1
+        ), "Channel dimension is inconsistent with loaded model"
+        assert len(params.shape) == 4
+        assert len(wavelength.shape) == 1
+        b, h, w, c = params.shape
 
-        return
+        if not pre_normalized:
+            bs, bw = self.param_bounds[:-1], self.param_bounds[-1]
+            for i in range(num_ch):
+                bounds = bs[i]
+                params[:, :, :, i] = (params[:, :, :, i] - bounds[0]) / (
+                    bounds[1] - bounds[0]
+                )
+            wavelength = (wavelength - bw[0]) / (bw[1] - bw[0])
+
+        x = (
+            torch.tensor(params, dtype=torch.float32).to("cuda")
+            if not torch.is_tensor(params)
+            else params.to(dtype=torch.float32, device="cuda")
+        )
+        lam = (
+            torch.tensor(wavelength, dtype=torch.float32).to("cuda")
+            if not torch.is_tensor(wavelength)
+            else wavelength.to(dtype=torch.float32, device="cuda")
+        )
+        torch_zero = torch.tensor(0.0, dtype=x.dtype).to(device=x.device)
+
+        x = rearrange(x, "b h w c -> (b h w) c")
+        tile = x.shape[0]
+        out = []
+        for li in lam:
+            out.append(self.model(torch.cat((x, li.repeat(tile, 1)), dim=1)))
+        out = torch.stack(out)
+        g = int(out.shape[-1] / 3)
+        out = rearrange(
+            out, "l (b h w) (g c3) -> b l g h w c3", g=g, c3=3, b=b, h=h, w=w
+        )
+        out = torch.complex(out[..., 0], torch_zero) * torch.exp(
+            torch.complex(torch_zero, torch.atan2(out[..., 2], out[..., 1]))
+        )
+
+        return torch.abs(out), torch.angle(out)
 
     def _initialize_model(self, config, trainable_model):
         model = instantiate_from_config(
@@ -40,9 +81,6 @@ class NeuralCells(nn.Module):
                 param.requires_grad = False
 
         return model
-
-    def _initialize_base(self, obj_str):
-        return get_obj_from_str(obj_str)()
 
 
 class NeuralFields(nn.Module):

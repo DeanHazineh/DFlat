@@ -1,22 +1,15 @@
 import os
-import shutil
-from torch.optim import AdamW
-import torch
-from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+
+import torch
+from torch.optim import AdamW
+from torch.utils.data import DataLoader, random_split
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 
 from .load_utils import instantiate_from_config
-
-
-def empty_directory(directory_path):
-    for root, dirs, files in os.walk(directory_path):
-        for f in files:
-            os.unlink(os.path.join(root, f))
-        for d in dirs:
-            shutil.rmtree(os.path.join(root, d))
 
 
 class Trainer_v1:
@@ -24,12 +17,12 @@ class Trainer_v1:
         self,
         config_model,
         ckpt_path,
+        dataset,
+        test_split=0.10,
         learning_rate=1e-3,
         epochs=1000,
         batch_size=256,
         checkpoint_every_n=100,
-        test_split=0.10,
-        start_clean=True,
         gradient_accumulation_steps=1,
         cosine_anneal_warm_restart=False,
         cosine_anneal_minLR=1e-6,
@@ -40,7 +33,6 @@ class Trainer_v1:
     ):
         config_model.params.trainable_model = True
         self.model = instantiate_from_config(config_model)
-        print(ckpt_path)
 
         locals_dict = locals()
         for name, value in locals_dict.items():
@@ -50,17 +42,29 @@ class Trainer_v1:
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-        self.__init_dir()
+        assert test_split < 1.0 and test_split > 0.0
+        total_size = len(dataset)
+        test_size = int(total_size * test_split)
+        train_size = total_size - test_size
+        train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+        self.train_dl = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        self.test_dl = DataLoader(test_dataset, batch_size=batch_size)
+
+        if not os.path.exists(ckpt_path):
+            os.makedirs(ckpt_path)
 
     def train(self):
         model = self.model
-        base_lib = model.base_library
-        train_dl, test_dl = base_lib.dataloader(self.test_split, self.batch_size)
-        if self.start_clean:
-            self.__init_dir(overwrite=True)
+        test_dl = self.test_dl
+        train_dl = self.train_dl
+        lr = self.learning_rate
+        gradient_accumulation_steps = self.gradient_accumulation_steps
+        cosine_anneal_warm_restart = self.cosine_anneal_warm_restart
+        ckpt_path = self.ckpt_path
+        epochs = self.epochs
+        checkpoint_every_n = self.checkpoint_every_n
 
         # Fix grad accumulation step number
-        gradient_accumulation_steps = self.gradient_accumulation_steps
         num_batches_in_epoch = len(train_dl)
         if gradient_accumulation_steps > num_batches_in_epoch:
             print(
@@ -69,8 +73,7 @@ class Trainer_v1:
             gradient_accumulation_steps = num_batches_in_epoch
 
         # Set up optimizer
-        optimizer = AdamW(model.parameters(), lr=self.learning_rate)
-        cosine_anneal_warm_restart = self.cosine_anneal_warm_restart
+        optimizer = AdamW(model.parameters(), lr=lr)
         if cosine_anneal_warm_restart:
             scheduler = CosineAnnealingWarmRestarts(
                 optimizer,
@@ -80,7 +83,6 @@ class Trainer_v1:
             )
 
         # Load the last checkpoint
-        ckpt_path = self.ckpt_path
         last_ckpt_path = ckpt_path + "training_ckpt.ckpt"
         if os.path.exists(last_ckpt_path):
             checkpoint = torch.load(last_ckpt_path)
@@ -96,7 +98,6 @@ class Trainer_v1:
             start_epoch = 0
 
         # Run Training with visualization
-        epochs = self.epochs
         for epoch in range(start_epoch, epochs):
             epoch_pbar = tqdm(
                 enumerate(train_dl), total=len(train_dl), desc=f"Epoch {epoch}"
@@ -115,8 +116,8 @@ class Trainer_v1:
                 if np.mod(step + 1, gradient_accumulation_steps) == 0 or (
                     step + 1
                 ) == len(train_dl):
-                    optimizer.step()  # Update weights
-                    optimizer.zero_grad()  # Zero out gradients for the next set of accumulation
+                    optimizer.step()
+                    optimizer.zero_grad()
 
                 step_losses.append(loss.item() * gradient_accumulation_steps)
                 epoch_pbar.set_postfix(
@@ -124,19 +125,15 @@ class Trainer_v1:
                 )
 
             # Evaluation Loop
-            avg_test_loss = 0.0
-            if test_dl is not None:
-                test_losses = []
-                model.eval()  # Set the model to evaluation mode
-                with torch.no_grad():  # Disable gradient computation
-                    for x, y in test_dl:
-                        x = x.to(dtype=torch.float32, device="cuda")
-                        y = y.to(dtype=torch.float32, device="cuda")
-                        loss = model.training_step(x, y)
-                        test_losses.append(loss.item())
-                avg_test_loss = np.mean(test_losses)
-            else:
-                avg_test_loss = 0.0
+            test_losses = []
+            model.eval()  # Set the model to evaluation mode
+            with torch.no_grad():  # Disable gradient computation
+                for x, y in test_dl:
+                    x = x.to(dtype=torch.float32, device="cuda")
+                    y = y.to(dtype=torch.float32, device="cuda")
+                    loss = model.training_step(x, y)
+                    test_losses.append(loss.item())
+            avg_test_loss = np.mean(test_losses)
 
             # Update the progress bar description with the current loss
             epoch_loss = np.mean(step_losses)
@@ -153,7 +150,6 @@ class Trainer_v1:
                 scheduler.step()
 
             # Save a snapshot of the model at the current checkpoint
-            checkpoint_every_n = self.checkpoint_every_n
             if self.update_figure_every_epoch or np.mod(epoch, checkpoint_every_n) == 0:
                 self.plot_training_loss(train_stats, ckpt_path)
 
@@ -177,15 +173,6 @@ class Trainer_v1:
         ax.plot(
             train_stats["test_loss"], "go-", label="Test Loss", linewidth=4, alpha=0.3
         )
-        # ax.plot(train_stats["25%"], label="Lower Quartile", color="grey")
-        # ax.plot(train_stats["75%"], label="Upper Quartile", color="grey")
-        # ax.fill_between(
-        #     train_stats.index,
-        #     train_stats["25%"],
-        #     train_stats["75%"],
-        #     color="grey",
-        #     alpha=0.2,
-        # )
 
         ax.scatter(
             train_stats.index,
@@ -219,15 +206,5 @@ class Trainer_v1:
         plt.tight_layout()
         plt.savefig(log_folder + "training_loss.png")
         plt.close()
-
-        return
-
-    def __init_dir(self, overwrite=False):
-        ckpt_path = self.ckpt_path
-
-        if not os.path.exists(ckpt_path):
-            os.makedirs(ckpt_path)
-        if overwrite:
-            empty_directory(ckpt_path)
 
         return

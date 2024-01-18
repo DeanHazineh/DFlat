@@ -1,11 +1,13 @@
-from omegaconf import OmegaConf
 import pkg_resources
 import importlib
 import torch
+from omegaconf import OmegaConf
 
 
 def load_optical_model(config_path, ckpt_path=None):
     config_path = pkg_resources.resource_filename("dflat", config_path)
+    print(f"Loading optical model from config path: {config_path}")
+
     config = OmegaConf.load(config_path)
     optical_model = instantiate_from_config(config.model)
 
@@ -21,24 +23,25 @@ def load_optical_model(config_path, ckpt_path=None):
 
 def load_trainer(config_path):
     config_path = pkg_resources.resource_filename("dflat", config_path)
-    config = OmegaConf.load(config_path)
+    print(f"Loading trainer from config path: {config_path}")
 
+    config = OmegaConf.load(config_path)
     config_model = config.model
     config_trainer = config.trainer
     ckpt_path = pkg_resources.resource_filename("dflat", config_trainer["ckpt_path"])
+    dataset = get_obj_from_str(config_trainer["data"])()
 
     trainer = get_obj_from_str(config_trainer["target"])(
         config_model,
         ckpt_path,
+        dataset,
         **config_trainer.get("params", dict()),
     )
     return trainer
 
 
 def instantiate_from_config(config_model, ckpt_path=None, strict=False):
-    if not "target" in config_model:
-        raise KeyError("Expected key `target` to instantiate.")
-
+    assert "target" in config_model, "Expected key `target` to instantiate."
     target_str = config_model["target"]
     print(f"Target Module: {target_str}")
     loaded_module = get_obj_from_str(target_str)(**config_model.get("params", dict()))
