@@ -15,8 +15,10 @@ def load_optical_model(config_path, ckpt_path=None):
         ckpt_path = pkg_resources.resource_filename("dflat", ckpt_path)
         print(f"Loading from checkpoint {ckpt_path}")
         sd = torch.load(ckpt_path, map_location="cpu")["state_dict"]
-        _, unexpected = optical_model.load_state_dict(sd, strict=True)
-
+        missing, unexpected = optical_model.load_state_dict(sd, strict=True)
+        print(
+            f"Loaded model from checkpoint with {len(missing)} missing and {len(unexpected)} unexpected params."
+        )
     return optical_model
 
 
