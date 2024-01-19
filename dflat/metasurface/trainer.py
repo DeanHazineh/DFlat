@@ -90,7 +90,11 @@ class Trainer_v1:
             checkpoint = torch.load(last_ckpt_path)
             model.load_state_dict(checkpoint["state_dict"])
             model.to("cuda")  # Need to move to cuda before loading optimizer state
+
             optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            if cosine_anneal_warm_restart:
+                scheduler.load_state_dict(checkpoint["scheduler"])
+
             start_epoch = checkpoint["epoch"]
             train_stats = pd.read_pickle(ckpt_path + "training_stats.pkl")
             print(f"Loaded checkpoint from epoch {start_epoch}")
@@ -156,14 +160,15 @@ class Trainer_v1:
                 self.plot_training_loss(train_stats, ckpt_path)
 
             if np.mod(epoch, checkpoint_every_n) == 0 and epoch > 0:
-                torch.save(
-                    {
-                        "epoch": epoch,
-                        "state_dict": model.state_dict(),
-                        "optimizer_state_dict": optimizer.state_dict(),
-                    },
-                    ckpt_path + "training_ckpt.ckpt",
-                )
+                state = {
+                    "epoch": epoch,
+                    "state_dict": model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                }
+                if cosine_anneal_warm_restart:
+                    state["scheduler"] = scheduler.state_dict()
+
+                torch.save(state, ckpt_path + "training_ckpt.ckpt")
                 train_stats.to_pickle(ckpt_path + "training_stats.pkl")
 
         return
