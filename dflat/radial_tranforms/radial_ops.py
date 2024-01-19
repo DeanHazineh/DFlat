@@ -61,7 +61,6 @@ def resize_with_crop_or_pad(input_tensor, target_height, target_width, radial_fl
     return input_tensor
 
 
-###
 def radial_2d_transform(r_array):
     """Transform a radial, real array (...,N) to a 2D profile (,2N-1, 2N-1).
 
@@ -124,34 +123,6 @@ def radial_2d_transform_wrapped_phase(r_array):
     return r_array if is_tensor_flag else r_array.cpu().numpy()
 
 
-def radial_2d_transform_complex(r_array):
-    """Transform a radial, complex array (,N) to a 2D profile (, 2N-1, 2N-1).
-
-    This function is analogous to radial_2d_transform but handles complex data.
-
-    Args:
-        r_array (complex): Input radial tensor of shape (batch_shape, N).
-
-    Returns:
-        complex: 2D-converted data via tensor of shape (batch_shape, 2N-1, 2N-1).
-    """
-
-    is_tensor_flag = torch.is_tensor(r_array)
-    if not is_tensor_flag:
-        r_array = torch.tensor(r_array)
-
-    torch_zero = torch.tensor(0.0, dtype=r_array.dtype).to(r_array.device)
-    radial_trans = radial_2d_transform(torch.abs(r_array))
-    radial_phase = radial_2d_transform_wrapped_phase(torch.angle(r_array))
-
-    r_array = torch.complex(radial_trans, torch_zero) * torch.exp(
-        torch.complex(torch_zero, radial_phase)
-    )
-
-    return r_array if is_tensor_flag else r_array.cpu().numpy()
-
-
-###
 def general_interp_regular_1d_grid(x, xi, y):
     """Computes the 1D interpolation of a complex tensor defined on a regular grid.
 

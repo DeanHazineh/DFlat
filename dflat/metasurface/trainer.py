@@ -1,8 +1,10 @@
 import os
+import math
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import warnings
 
 import torch
 from torch.optim import AdamW
@@ -23,12 +25,12 @@ class Trainer_v1:
         epochs=1000,
         batch_size=256,
         checkpoint_every_n=100,
+        update_figure_every_epoch=True,
         gradient_accumulation_steps=1,
         cosine_anneal_warm_restart=False,
         cosine_anneal_minLR=1e-6,
         cosine_anneal_T_0=400,
         cosine_anneal_T_mult=2,
-        update_figure_every_epoch=True,
         **kwargs,
     ):
         config_model.params.trainable_model = True

@@ -1,0 +1,37 @@
+model:
+  target: dflat.metasurface.optical_model.NeuralCells
+  ckpt_path: None
+  params:
+    trainable_model: False
+    param_bounds:
+      - [60e-9, 300e-9] # length x
+      - [60e-9, 300e-9] # length y
+      - [310e-9, 750e-9] # wavelength
+    nn_config:
+      target: dflat.metasurface.nn.SirenNet
+      ckpt_path: None
+      params:
+        in_channels: 3
+        out_channels: 6
+        channels:
+          - 512
+          - 512
+        w0_initial: 100
+        w0: 1.
+
+trainer:
+  target: dflat.metasurface.trainer.Trainer_v1
+  data: dflat.metasurface.datasets.Nanofins_TiO2_U350nm_H600nm
+  ckpt_path: metasurface/ckpt/Nanofins_TiO2_U350H600_Medium/
+  params:
+    test_split: 0.10
+    learning_rate: .01
+    epochs: 1050
+    batch_size: 65536
+    checkpoint_every_n: 50
+    update_figure_every_epoch: True
+    gradient_accumulation_steps: 1
+    cosine_anneal_warm_restart: True
+    cosine_anneal_minLR: .001
+    cosine_anneal_T_0: 5
+    cosine_anneal_T_mult: 3
