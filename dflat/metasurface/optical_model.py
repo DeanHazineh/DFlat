@@ -4,18 +4,12 @@ from einops import rearrange
 from .load_utils import instantiate_from_config
 
 
-def disabled_train(self, mode=True):
-    """Overwrite model.train with this function to make sure train/eval mode
-    does not change anymore."""
-    return self
-
-
 class NeuralCells(nn.Module):
     def __init__(self, nn_config, param_bounds, trainable_model=False):
         super().__init__()
         self.model = self._initialize_model(nn_config, trainable_model)
         self.param_bounds = param_bounds
-        self.loss = nn.L1Loss()
+        self.loss = nn.MSELoss()  # This outperforms L1 loss
 
     def training_step(self, x, y):
         pred = self.model(x)
@@ -65,7 +59,9 @@ class NeuralCells(nn.Module):
         )
 
         out = torch.complex(out[..., 0], torch_zero) * torch.exp(
-            torch.complex(torch_zero, torch.atan2(out[..., 2], out[..., 1]))
+            torch.complex(
+                torch_zero, torch.atan2((out[..., 2] * 2) - 1, (out[..., 1] * 2) - 1)
+            )
         )
 
         return torch.abs(out), torch.angle(out)
@@ -77,7 +73,6 @@ class NeuralCells(nn.Module):
 
         if not trainable_model:
             model = model.eval()
-            model.train = disabled_train
             for param in model.parameters():
                 param.requires_grad = False
 

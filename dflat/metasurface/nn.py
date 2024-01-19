@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 class SirenNet(nn.Module):
     def __init__(
-        self, in_channels, out_channels, channels=(256, 256), w0=100.0, w0_initial=30
+        self, in_channels, out_channels, channels=(256, 256), w0=1.0, w0_initial=30
     ):
         super().__init__()
         self.blocks = nn.ModuleList()

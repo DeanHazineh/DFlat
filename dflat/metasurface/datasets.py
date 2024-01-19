@@ -19,13 +19,13 @@ class Nanofins_TiO2_U350nm_H600nm(Dataset):
 
         # Raw phase and transmittance data has shape [Npol=2, leny=49, lenx=49, wavelength=441]
         data = scipy.io.loadmat(datpath)
-        self.phase = np.angle(np.exp(1j * data["phase"])) + np.pi
-        self.trans = np.sqrt(data["transmission"])
+        self.phase = data["phase"]
+        self.trans = np.sqrt(np.clip(data["transmission"], 0, np.finfo(np.float32).max))
         self.params = [data["leny"], data["lenx"], data["wavelength_m"].flatten()]
         self.param_limits = [[60e-9, 300e-9], [60e-9, 300e-9], [310e-9, 750e-9]]
 
         # Transform the data into a cell-level dataset ([0, 1])
-        trans = np.clip(self.trans, 0, np.finfo(np.float32).max)
+        trans = self.trans
         phase = self.phase
         params = np.meshgrid(
             *[
@@ -38,14 +38,16 @@ class Nanofins_TiO2_U350nm_H600nm(Dataset):
         self.y = np.stack(
             [
                 trans[0].flatten(),
-                np.cos(phase[0].flatten()),
-                np.sin(phase[0].flatten()),
+                (np.cos(phase[0].flatten()) + 1) / 2,
+                (np.sin(phase[0].flatten()) + 1) / 2,
                 trans[1].flatten(),
-                np.cos(phase[1].flatten()),
-                np.sin(phase[1].flatten()),
+                (np.cos(phase[1].flatten()) + 1) / 2,
+                (np.sin(phase[1].flatten()) + 1) / 2,
             ],
             -1,
         )
+        print(self.x.shape, self.y.shape)
+        print(self.x.min(), self.x.max(), self.y.min(), self.y.max())
 
     def __len__(self):
         return self.x.shape[0]
@@ -132,13 +134,13 @@ class Nanocylinders_TiO2_U180nm_H600nm(Dataset):
 
         # Phase and transmission has shape [wavelength=441, lenr=191]
         data = scipy.io.loadmat(datpath)
-        self.phase = np.angle(np.exp(1j * data["phase"])) + np.pi
-        self.trans = np.sqrt(data["transmission"])
+        self.phase = data["phase"]
+        self.trans = np.sqrt(np.clip(data["transmission"], 0, np.finfo(np.float32).max))
         self.params = [data["radius_m"], data["wavelength_m"].flatten()]
         self.param_limits = [[30e-9, 150e-9], [310e-9, 750e-9]]
 
         # Transform data into a cell-level dataset ([0, 1])
-        trans = np.clip(self.trans, 0, np.finfo(np.float32).max)
+        trans = self.trans
         phase = self.phase
         params = np.meshgrid(
             *[
@@ -151,11 +153,13 @@ class Nanocylinders_TiO2_U180nm_H600nm(Dataset):
         self.y = np.stack(
             [
                 trans.flatten(),
-                np.cos(phase.flatten()),
-                np.sin(phase.flatten()),
+                (np.cos(phase.flatten()) + 1) / 2,
+                (np.sin(phase.flatten()) + 1) / 2,
             ],
             -1,
         )
+        print(self.x.shape, self.y.shape)
+        print(self.x.min(), self.x.max(), self.y.min(), self.y.max())
 
     def __len__(self):
         return self.x.shape[0]
@@ -165,12 +169,12 @@ class Nanocylinders_TiO2_U180nm_H600nm(Dataset):
 
     def plot(self, savepath=None):
         phase = self.phase
-        trans = self.transmittance
+        trans = self.trans
         r = self.params[0] * 1e9
         lam = self.params[1] * 1e9
 
         fig, ax = plt.subplots(1, 2, figsize=(12, 5))
-        ax[0].imshow(trans, vmin=0, vmax=1)
+        ax[0].imshow(trans)
         formatPlot(
             fig,
             ax[0],
@@ -182,7 +186,7 @@ class Nanocylinders_TiO2_U180nm_H600nm(Dataset):
             addcolorbar=True,
             setAspect="auto",
         )
-        ax[1].imshow(phase, vmin=0, vmax=2 * np.pi, cmap="hsv")
+        ax[1].imshow(phase, cmap="hsv")
         formatPlot(
             fig,
             ax[1],
@@ -207,13 +211,13 @@ class Nanoellipse_TiO2_U350nm_H600nm(Nanofins_TiO2_U350nm_H600nm):
         data = scipy.io.loadmat(datapath)
 
         # Phase and transmission has shape [Npol=2, leny=49, lenx=49, wavelength=441]
-        self.phase = np.angle(np.exp(1j * data["phase"])) + np.pi
-        self.transmittance = np.sqrt(data["transmission"])
+        self.phase = data["phase"]
+        self.trans = np.sqrt(np.clip(data["transmission"], 0, np.finfo(np.float32).max))
         self.params = [data["lenx"], data["leny"], data["wavelength_m"].flatten()]
         self.param_limits = [[60e-9, 300e-9], [60e-9, 300e-9], [310e-9, 750e-9]]
 
         # Transform the data into a cell-level dataset ([0, 1])
-        trans = np.clip(self.trans, 0, np.finfo(np.float32).max)
+        trans = self.trans
         phase = self.phase
         params = np.meshgrid(
             *[
@@ -226,11 +230,13 @@ class Nanoellipse_TiO2_U350nm_H600nm(Nanofins_TiO2_U350nm_H600nm):
         self.y = np.stack(
             [
                 trans[0].flatten(),
-                np.cos(phase[0].flatten()),
-                np.sin(phase[0].flatten()),
+                (np.cos(phase[0].flatten()) + 1) / 2,
+                (np.sin(phase[0].flatten()) + 1) / 2,
                 trans[1].flatten(),
-                np.cos(phase[1].flatten()),
-                np.sin(phase[1].flatten()),
+                (np.cos(phase[1].flatten()) + 1) / 2,
+                (np.sin(phase[1].flatten()) + 1) / 2,
             ],
             -1,
         )
+        print(self.x.shape, self.y.shape)
+        print(self.x.min(), self.x.max(), self.y.min(), self.y.max())
