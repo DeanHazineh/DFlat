@@ -1,7 +1,12 @@
 **cache/
+**__pycache__**
 **.egg-info**
+**build*
+
 **.mat
 **.zip
+**.pickle
+**.ckpt
+**.pkl
 dflat/**.png
 dflat/**.pdf
-
