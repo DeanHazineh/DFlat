@@ -4,9 +4,8 @@ model:
   params:
     trainable_model: False
     param_bounds:
-      - [60e-9, 300e-9] # length x
-      - [60e-9, 300e-9] # length y
-      - [310e-9, 750e-9] # wavelength
+      - [30e-9, 150e-9]
+      - [310e-9, 750e-9]
     #nn_config:
       #target: dflat.metasurface.nn.SirenNet
       # ckpt_path: None
@@ -22,9 +21,9 @@ model:
       target: dflat.metasurface.nn_siren.SirenNet
       ckpt_path: None
       params:
-        dim_in: 3
-        dim_hidden: 512
-        dim_out: 6
+        dim_in: 2
+        dim_hidden: 256
+        dim_out: 3
         num_layers: 2
         w0: 1.
         w0_initial: 30.
@@ -34,8 +33,8 @@ model:
 
 trainer:
   target: dflat.metasurface.trainer.Trainer_v1
-  data: dflat.metasurface.datasets.Nanofins_TiO2_U350nm_H600nm
-  ckpt_path: metasurface/ckpt/Nanofins_TiO2_U350H600_Medium/
+  data: dflat.metasurface.datasets.Nanocylinders_TiO2_U180nm_H600nm
+  ckpt_path: metasurface/ckpt/Nanocylinders_TiO2_U180H600_Medium/
   params:
     test_split: 0.10
     learning_rate: .001
