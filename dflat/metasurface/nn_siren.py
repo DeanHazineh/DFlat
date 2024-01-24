@@ -8,15 +8,11 @@ from torch import nn
 import torch.nn.functional as F
 from einops import rearrange
 
-# helpers
-
 def exists(val):
     return val is not None
 
 def cast_tuple(val, repeat = 1):
     return val if isinstance(val, tuple) else ((val,) * repeat)
-
-# sin activation
 
 class Sine(nn.Module):
     def __init__(self, w0 = 1.):
@@ -24,8 +20,6 @@ class Sine(nn.Module):
         self.w0 = w0
     def forward(self, x):
         return torch.sin(self.w0 * x)
-
-# siren layer
 
 class Siren(nn.Module):
     def __init__(
@@ -66,8 +60,6 @@ class Siren(nn.Module):
         out = self.activation(out)
         out = self.dropout(out)
         return out
-
-# siren network
 
 class SirenNet(nn.Module):
     def __init__(
@@ -117,8 +109,6 @@ class SirenNet(nn.Module):
 
         return self.last_layer(x)
 
-# modulatory feed forward
-
 class Modulator(nn.Module):
     def __init__(self, dim_in, dim_hidden, num_layers):
         super().__init__()
@@ -143,8 +133,6 @@ class Modulator(nn.Module):
             x = torch.cat((x, z))
 
         return tuple(hiddens)
-
-# wrapper
 
 class SirenWrapper(nn.Module):
     def __init__(self, net, image_width, image_height, latent_dim = None):
