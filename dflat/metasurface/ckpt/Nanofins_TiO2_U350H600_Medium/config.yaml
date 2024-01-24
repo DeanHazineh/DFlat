@@ -8,16 +8,28 @@ model:
       - [60e-9, 300e-9] # length y
       - [310e-9, 750e-9] # wavelength
     nn_config:
-      target: dflat.metasurface.nn.SirenNet
+      #target: dflat.metasurface.nn.SirenNet
+      # ckpt_path: None
+      # params:
+      #   in_channels: 3
+      #   out_channels: 6
+      #   channels:
+      #     - 512
+      #     - 512
+      #   w0_initial: 100
+      #   w0: 1.
+      target: dflat.metasurface.nn_siren.SirenNet
       ckpt_path: None
       params:
-        in_channels: 3
-        out_channels: 6
-        channels:
-          - 512
-          - 512
-        w0_initial: 100
+        dim_in: 3
+        dim_hidden: 512
+        dim_out: 6
+        num_layers: 2
         w0: 1.
+        w0_initial: 50.
+        use_bias: True
+        dropout: 0
+
 
 trainer:
   target: dflat.metasurface.trainer.Trainer_v1
