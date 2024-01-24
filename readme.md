@@ -6,7 +6,7 @@
 [![Pytest Workflow](https://github.com/DeanHazineh/DFlat-pytorch/actions/workflows/pytest.yml/badge.svg?branch=dflat_v2.0.0)](https://github.com/DeanHazineh/DFlat-pytorch/actions/workflows/pytest.yml)
 
 - This repository is the home for the new and maintained version of DFlat. It replaces DFlat-Tensorflow.
-- Note that this package is no longer a direct port of pytorch-tensorflow but is a complete rewrite. The structure of the framework is completely revamped in most places and the algorithms used--in particular for field propagation--is not the same as before. The old pytorch version is now archived as a seperate branch (kept only for historical reasons).
+- Note that this package is no longer a direct port of pytorch-tensorflow but is a complete rewrite released in early 2024. The structure of the framework is completely revamped in most places and the algorithms used--in particular for field propagation--is not the same as before. The old pytorch version is now archived as a seperate branch (kept only for historical reasons).
 
 
 
