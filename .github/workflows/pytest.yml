@@ -24,4 +24,4 @@ jobs:
           pip install .
       - name: Run pytest suite
         run: |
-          pytest tests/ --ignore=tests/test_metasurface.py tests/test_propagation.py
+          pytest tests/ --ignore=tests/test_metasurface.py --ignore=tests/test_propagation.py
