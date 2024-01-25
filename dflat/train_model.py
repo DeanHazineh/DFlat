@@ -4,8 +4,8 @@ from einops import rearrange
 import matplotlib.pyplot as plt
 
 # Call trainer on model
-#config_path = 'metasurface/ckpt/Nanofins_TiO2_U350H600_Medium/config.yaml'
-config_path = 'metasurface/ckpt/Nanocylinders_TiO2_U180H600_Medium/config.yaml'
+config_path = 'metasurface/ckpt/Nanofins_TiO2_U350H600_Medium/config.yaml'
+#config_path = 'metasurface/ckpt/Nanocylinders_TiO2_U180H600_Medium/config.yaml'
 trainer = load_trainer(config_path)
 trainer.train()
 

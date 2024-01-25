@@ -136,7 +136,7 @@ class Nanocylinders_TiO2_U180nm_H600nm(Dataset):
         data = scipy.io.loadmat(datpath)
         self.phase = data["phase"]
         self.trans = np.sqrt(np.clip(data["transmission"], 0, np.finfo(np.float32).max))
-        self.params = [data["radius_m"], data["wavelength_m"].flatten()]
+        self.params = [data["radius_m"], data["wavelength_m"].flatten()] # This is diameter not radius
         self.param_limits = [[30e-9, 150e-9], [310e-9, 750e-9]]
 
         # Transform data into a cell-level dataset ([0, 1])
