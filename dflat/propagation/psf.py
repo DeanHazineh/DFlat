@@ -62,9 +62,24 @@ class PointSpreadFunction(nn.Module):
         aperture=None,
         normalize_to_aperture=True,
     ):
-        # Batch, wl, x, y
+        """_summary_
+
+        Args:
+            amplitude (tensor): Lens amplitude of shape [... L H W].
+            phase (tensor): Lens phase of shape [... L H W]
+            wavelength_set_m (list): List of wavelengths corresponding to the L dimension. If L=1 in the passed in profiles,
+                broadcasting will be used to propagate the same field at different wavelengths.
+            ps_locs_m (tensor): Array point-source locations of shape [N x 3] where each column corresponds to Y, X, Depth
+            aperture (Tensor, optional): Field aperture applied on the lens the same rank as amplitude
+                and with the same H W dimensions. Defaults to None.
+            normalize_to_aperture (bool, optional): If true the energy in the PSF will be normalized to the total energy
+                incident on the optic/aperture. Defaults to True.
+
+        Returns:
+            List: Returns point-spread function intensity and phase of shape [B P Z L H W].
+        """
         assert amplitude.shape == phase.shape
-        assert len(amplitude.shape) == 4
+        assert len(amplitude.shape) >= 4
         assert len(wavelength_set_m) == amplitude.shape[-3] or amplitude.shape[-3] == 1
         ps_locs_m = np.array(ps_locs_m) if not torch.is_tensor(ps_locs_m) else ps_locs_m
         assert len(ps_locs_m.shape) == 2
@@ -97,6 +112,12 @@ class PointSpreadFunction(nn.Module):
                 else aperture.to(dtype=torch.float32)
             )
 
+        # Reshape B P L H  W to B L H W
+        init_shape = amplitude.shape
+        amplitude = amplitude.view(-1, *init_shape[-3:])
+        phase = phase.view(-1, *init_shape[-3:])
+        print(amplitude.shape, phase.shape)
+
         N = amplitude.shape[0]
         Z = len(ps_locs_m)
         amplitude, phase = self._incident_wavefront(
@@ -110,6 +131,11 @@ class PointSpreadFunction(nn.Module):
         amplitude, phase = self.propagator(amplitude, phase, wavelength_set_m)
         amplitude = rearrange(amplitude, "(N Z) L H W -> N Z L H W", N=N, Z=Z)
         phase = rearrange(phase, "(N Z) L H W -> N Z L H W", N=N, Z=Z)
+
+        # Return to the original shape before returning
+        out_shape = amplitude.shape
+        amplitude = amplitude.view(*init_shape[:-3], *out_shape[-4:])
+        phase = phase.view(*init_shape[:-3], *out_shape[-4:])
 
         amplitude = amplitude**2
         normalization = (

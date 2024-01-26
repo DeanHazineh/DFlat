@@ -1,25 +1,15 @@
 model:
   target: dflat.metasurface.optical_model.NeuralCells
-  ckpt_path: None
+  ckpt_path: metasurface/ckpt/Nanocylinders_TiO2_U180H600_Medium/model.ckpt
   params:
     trainable_model: False
     param_bounds:
       - [30e-9, 150e-9]
       - [310e-9, 750e-9]
-    #nn_config:
-      #target: dflat.metasurface.nn.SirenNet
-      # ckpt_path: None
-      # params:
-      #   in_channels: 3
-      #   out_channels: 6
-      #   channels:
-      #     - 512
-      #     - 512
-      #   w0_initial: 100
-      #   w0: 1.
     nn_config:
       target: dflat.metasurface.nn_siren.SirenNet
       ckpt_path: None
+      loss: torch.nn.MSELoss
       params:
         dim_in: 2
         dim_hidden: 256
@@ -30,15 +20,14 @@ model:
         use_bias: True
         dropout: 0
 
-
 trainer:
   target: dflat.metasurface.trainer.Trainer_v1
   data: dflat.metasurface.datasets.Nanocylinders_TiO2_U180nm_H600nm
-  ckpt_path: metasurface/ckpt/Nanocylinders_TiO2_U180H600_Medium/
+  ckpt_path: metasurface/ckpt/Nanocylinders_TiO2_U180H600_Medium/model.ckpt
   params:
     test_split: 0.10
     learning_rate: .001
-    epochs: 10000
+    epochs: 6000
     batch_size: 65536
     checkpoint_every_n: 50
     update_figure_every_epoch: True

@@ -46,8 +46,6 @@ class Nanofins_TiO2_U350nm_H600nm(Dataset):
             ],
             -1,
         )
-        print(self.x.shape, self.y.shape)
-        print(self.x.min(), self.x.max(), self.y.min(), self.y.max())
 
     def __len__(self):
         return self.x.shape[0]
@@ -133,10 +131,17 @@ class Nanocylinders_TiO2_U180nm_H600nm(Dataset):
         datpath = get_path_to_data("Nanocylinders_TiO2_Unit180nm_Height600nm_FDTD.mat")
 
         # Phase and transmission has shape [wavelength=441, lenr=191]
+        # (Need to transpose to make wavelength last dimension)
+        # This is diameter not radius
         data = scipy.io.loadmat(datpath)
-        self.phase = data["phase"]
-        self.trans = np.sqrt(np.clip(data["transmission"], 0, np.finfo(np.float32).max))
-        self.params = [data["radius_m"], data["wavelength_m"].flatten()] # This is diameter not radius
+        self.phase = data["phase"].T
+        self.trans = np.sqrt(
+            np.clip(data["transmission"], 0, np.finfo(np.float32).max)
+        ).T
+        self.params = [
+            data["radius_m"],
+            data["wavelength_m"].flatten(),
+        ]
         self.param_limits = [[30e-9, 150e-9], [310e-9, 750e-9]]
 
         # Transform data into a cell-level dataset ([0, 1])
@@ -145,7 +150,7 @@ class Nanocylinders_TiO2_U180nm_H600nm(Dataset):
         params = np.meshgrid(
             *[
                 (p - l[0]) / (l[1] - l[0])
-                for _, (p, l) in enumerate(zip(self.params, self.param_limits))
+                for (p, l) in zip(self.params, self.param_limits)
             ],
             indexing="ij",
         )
@@ -158,8 +163,6 @@ class Nanocylinders_TiO2_U180nm_H600nm(Dataset):
             ],
             -1,
         )
-        print(self.x.shape, self.y.shape)
-        print(self.x.min(), self.x.max(), self.y.min(), self.y.max())
 
     def __len__(self):
         return self.x.shape[0]
@@ -238,5 +241,3 @@ class Nanoellipse_TiO2_U350nm_H600nm(Nanofins_TiO2_U350nm_H600nm):
             ],
             -1,
         )
-        print(self.x.shape, self.y.shape)
-        print(self.x.min(), self.x.max(), self.y.min(), self.y.max())

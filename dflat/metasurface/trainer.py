@@ -52,9 +52,6 @@ class Trainer_v1:
         self.train_dl = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         self.test_dl = DataLoader(test_dataset, batch_size=batch_size)
 
-        if not os.path.exists(ckpt_path):
-            os.makedirs(ckpt_path)
-
     def train(self):
         model = self.model
         test_dl = self.test_dl
@@ -63,8 +60,12 @@ class Trainer_v1:
         gradient_accumulation_steps = self.gradient_accumulation_steps
         cosine_anneal_warm_restart = self.cosine_anneal_warm_restart
         ckpt_path = self.ckpt_path
+        ckpt_dir = os.path.dirname(ckpt_path)
         epochs = self.epochs
         checkpoint_every_n = self.checkpoint_every_n
+
+        if not os.path.exists(ckpt_dir):
+            os.makedirs(ckpt_dir)
 
         # Fix grad accumulation step number
         num_batches_in_epoch = len(train_dl)
@@ -85,9 +86,8 @@ class Trainer_v1:
             )
 
         # Load the last checkpoint
-        last_ckpt_path = ckpt_path + "training_ckpt.ckpt"
-        if os.path.exists(last_ckpt_path):
-            checkpoint = torch.load(last_ckpt_path)
+        if os.path.exists(ckpt_path):
+            checkpoint = torch.load(ckpt_path)
             model.load_state_dict(checkpoint["state_dict"])
             model.to("cuda")  # Need to move to cuda before loading optimizer state
 
@@ -96,7 +96,7 @@ class Trainer_v1:
                 scheduler.load_state_dict(checkpoint["scheduler"])
 
             start_epoch = checkpoint["epoch"]
-            train_stats = pd.read_pickle(ckpt_path + "training_stats.pkl")
+            train_stats = pd.read_pickle(os.path.join(ckpt_dir, "training_stats.pkl"))
             print(f"Loaded checkpoint from epoch {start_epoch}")
         else:
             model.to("cuda")
@@ -157,7 +157,7 @@ class Trainer_v1:
 
             # Save a snapshot of the model at the current checkpoint
             if self.update_figure_every_epoch or np.mod(epoch, checkpoint_every_n) == 0:
-                self.plot_training_loss(train_stats, ckpt_path)
+                self.plot_training_loss(train_stats, ckpt_dir)
 
             if np.mod(epoch, checkpoint_every_n) == 0 and epoch > 0:
                 state = {
@@ -168,8 +168,8 @@ class Trainer_v1:
                 if cosine_anneal_warm_restart:
                     state["scheduler"] = scheduler.state_dict()
 
-                torch.save(state, ckpt_path + "training_ckpt.ckpt")
-                train_stats.to_pickle(ckpt_path + "training_stats.pkl")
+                torch.save(state, ckpt_path)
+                train_stats.to_pickle(os.path.join(ckpt_dir, "training_stats.pkl"))
 
         return
 
@@ -211,7 +211,7 @@ class Trainer_v1:
         ax.legend(lines1 + lines2, labels1 + labels2, loc=0)
         ax.grid(True, which="both", linestyle="--", linewidth=0.5)
         plt.tight_layout()
-        plt.savefig(log_folder + "training_loss.png")
+        plt.savefig(os.path.join(log_folder, "training_loss.png"))
         plt.close()
 
         return
