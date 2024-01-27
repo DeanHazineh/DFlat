@@ -25,10 +25,11 @@ trainer:
   target: dflat.metasurface.trainer.Trainer_v1
   data: dflat.metasurface.datasets.Nanofins_TiO2_U350nm_H600nm
   ckpt_path: metasurface/ckpt/Nanofins_TiO2_U350H600_Medium/model.ckpt
+  relative_ckpt: True
   params:
     test_split: 0.10
     learning_rate: .001
-    epochs: 2000
+    epochs: 5000
     batch_size: 65536
     checkpoint_every_n: 50
     update_figure_every_epoch: True
