@@ -4,6 +4,8 @@ from tqdm.auto import tqdm
 import gdspy
 import time
 
+from .gds_utils import add_marker_tag, upsample_block
+
 
 def assemble_nanocylinder_gds(
     params,
@@ -38,24 +40,9 @@ def assemble_nanocylinder_gds(
     assert params.shape[-1] == 1, "Shape dimension D should be equal to 1 (diameter)"
 
     # upsample the params to match the target blocks
-    H, W, C = params.shape
-    scale_factor = np.array(block_size) / np.array(cell_size)
-    Hnew = np.rint(H * scale_factor[0]).astype(int)
-    Wnew = np.rint(W * scale_factor[1]).astype(int)
-
-    params_ = cv2.resize(
-        params,
-        (Wnew, Hnew),
-        interpolation=cv2.INTER_LINEAR,
-    )
-    params_ = np.expand_dims(params_, -1)
-    pshape = params_.shape
-    mask = cv2.resize(
-        np.expand_dims(mask, -1),
-        (Wnew, Hnew),
-        interpolation=cv2.INTER_LINEAR,
-    )
+    params_, mask = upsample_block(params, mask, cell_size, block_size)
     mask = mask.astype(int).astype(bool)
+    pshape = params_.shape
 
     # Write to GDS
     lib = gdspy.GdsLibrary(unit=gds_unit, precision=gds_precision)
@@ -88,20 +75,5 @@ def assemble_nanocylinder_gds(
     lib.write_gds(savepath)
     end = time.time()
     print("Completed writing and saving metasurface GDS File: Time: ", end - start)
-
-    return
-
-
-def add_marker_tag(cell, ms, hx, hy):
-    mw = ms * 5 / 9
-    mh = ms / 2 + (21.10 / ms)  # Correction for the + sign center
-
-    cx = -mw / 2
-    cy = -mh + 2
-    # Add alignment markers at
-    cell.add(gdspy.Text("+", ms, (cx - ms / 2, cy - ms / 2)))  # lower left
-    cell.add(gdspy.Text("+", ms, (cx + hx + ms / 2, cy - ms / 2)))  # lower right
-    cell.add(gdspy.Text("+", ms, (cx + hx + ms / 2, cy + hx + ms / 2)))  # upper right
-    cell.add(gdspy.Text("+", ms, (cx - ms / 2, cy + hx + ms / 2)))  # upper left
 
     return
