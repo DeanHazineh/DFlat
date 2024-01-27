@@ -11,3 +11,5 @@ einops
 omegaconf
 tqdm
 pandas
+opencv-python
+gdspy

@@ -1,7 +1,6 @@
 model:
   target: dflat.metasurface.optical_model.NeuralCells
   ckpt_path: metasurface/ckpt/Nanocylinders_TiO2_U180H600_Medium/model.ckpt
-  relative_ckpt: True
   params:
     trainable_model: False
     param_bounds:
