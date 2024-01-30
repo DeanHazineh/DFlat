@@ -1,5 +1,5 @@
 # DFlat
-# 01/29/2024->01/30/2024. This Repository is temporarily down while a new version is being uploaded.
+# 01/29/2024->01/30/2024. This repository is temporarily down while a new version is being uploaded.
 
 ## An End-to-End Design Framework for Diffractive Optics and Metasurface-Based Vision Systems
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
