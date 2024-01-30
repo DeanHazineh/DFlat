@@ -103,7 +103,7 @@ class NeuralCells(nn.Module):
         bs = self.param_bounds[:-1]
         out = []
         for i, bounds in enumerate(bs):
-            out.append(params[:, :, :, i] * (bounds[1] - bounds[0]) - bounds[0])
+            out.append(params[:, :, :, i] * (bounds[1] - bounds[0]) + bounds[0])
 
         out = (
             torch.stack(out, dim=-1)

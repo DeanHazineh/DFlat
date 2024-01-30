@@ -1,5 +1,6 @@
 import torch
 import torch.optim as optim
+import numpy as np
 
 from .load_utils import load_optical_model
 from .latent import latent_to_param
@@ -27,7 +28,7 @@ def reverse_lookup_optimize(
         max_iter (int, optional): Maximum number of steps. Defaults to 1000.
 
     Returns:
-        list: Returns normalized and unnormalized metasurface design parameters of shape [B, H, W, D] where D is the number of shape parameters.
+        list: Returns normalized and unnormalized metasurface design parameters of shape [B, H, W, D] where D is the number of shape parameters. Last item in list is the MAE loss for each step.
     """
     B, P, L, H, W = amp.shape
     assert amp.shape == phase.shape
@@ -40,12 +41,9 @@ def reverse_lookup_optimize(
     pg = model.dim_out // 3
     assert pg == P, f"Polarization dimension of amp, phase (dim1) expected to be {pg}."
 
-    z = torch.zeros(
-        (B, H, W, model.dim_in - 1),
-        device="cuda",
-        dtype=torch.float32,
-        requires_grad=True,
-    )
+    # z = np.random.rand(B, H, W, model.dim_in - 1)
+    z = np.zeros((B, H, W, model.dim_in - 1))
+    z = torch.tensor(z, device="cuda", dtype=torch.float32, requires_grad=True)
     wavelength = (
         torch.tensor(wavelength_set_m)
         if not torch.is_tensor(wavelength_set_m)
@@ -65,6 +63,7 @@ def reverse_lookup_optimize(
 
     err = 1e3
     steps = 0
+    err_list = []
     while err > err_thresh:
         if steps >= max_iter:
             break
@@ -82,6 +81,7 @@ def reverse_lookup_optimize(
         optimizer.step()
         err = loss.item()
         steps += 1
+        err_list.append(err)
 
     op_param = latent_to_param(z).detach().cpu().numpy()
-    return op_param, model.denormalize(op_param)
+    return op_param, model.denormalize(op_param), err_list
