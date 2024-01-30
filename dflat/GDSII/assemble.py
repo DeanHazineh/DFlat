@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 from tqdm.auto import tqdm
 import gdspy
@@ -31,13 +30,126 @@ def assemble_nanocylinder_gds(
         marker_size (float, optional): size of alignment markers. Defaults to 250e-6.
         number_of_points (int, optional): Number of points to represent the shape. Defaults to 9.
     """
+    assert (
+        params.shape[-1] == 1
+    ), "Shape dimension D encodes radius should be equal to 1."
+    assemble_standard_shapes(
+        gdspy.Round,
+        params,
+        mask,
+        cell_size,
+        block_size,
+        savepath,
+        gds_unit,
+        gds_precision,
+        marker_size,
+        number_of_points,
+    )
+    return
+
+
+def assemble_ellipse_gds(
+    params,
+    mask,
+    cell_size,
+    block_size,
+    savepath,
+    gds_unit=1e-6,
+    gds_precision=1e-9,
+    marker_size=250e-6,
+    number_of_points=9,
+):
+    """Generate a GDS for Nano-ellipse metasurfaces.
+
+    Args:
+        params (float): Nanocylinder radius across the lens of shape [H, W, 1].
+        mask (int): Boolean mask of whether to write a shape or skip it of shape [H, W].
+        cell_size (list): Cell sizes holding the nanocylinder of [dy, dx].
+        block_size (list): Block sizes to repeat the nanocylinders of [dy', dx']. resize function is applied.
+        savepath (str): Path to save the gds file (including .gds extension).
+        gds_unit (flaot, optional): gdspy units. Defaults to 1e-6.
+        gds_precision (float, optional): gdspy precision. Defaults to 1e-9.
+        marker_size (float, optional): size of alignment markers. Defaults to 250e-6.
+        number_of_points (int, optional): Number of points to represent the shape. Defaults to 9.
+    """
+    assert (
+        params.shape[-1] == 2
+    ), "Shape dimension D encodes radius (x,y) should be equal to 2."
+    assemble_standard_shapes(
+        gdspy.Round,
+        params,
+        mask,
+        cell_size,
+        block_size,
+        savepath,
+        gds_unit,
+        gds_precision,
+        marker_size,
+        number_of_points,
+    )
+    return
+
+
+def asseble_nanofin_gds(
+    params,
+    mask,
+    cell_size,
+    block_size,
+    savepath,
+    gds_unit=1e-6,
+    gds_precision=1e-9,
+    marker_size=250e-6,
+    number_of_points=9,
+):
+    """Generate a GDS for Nanofin metasurfaces.
+
+    Args:
+        params (float): Nanocylinder radius across the lens of shape [H, W, 1].
+        mask (int): Boolean mask of whether to write a shape or skip it of shape [H, W].
+        cell_size (list): Cell sizes holding the nanocylinder of [dy, dx].
+        block_size (list): Block sizes to repeat the nanocylinders of [dy', dx']. resize function is applied.
+        savepath (str): Path to save the gds file (including .gds extension).
+        gds_unit (flaot, optional): gdspy units. Defaults to 1e-6.
+        gds_precision (float, optional): gdspy precision. Defaults to 1e-9.
+        marker_size (float, optional): size of alignment markers. Defaults to 250e-6.
+        number_of_points (int, optional): Number of points to represent the shape. Defaults to 9.
+    """
+    assert (
+        params.shape[-1] == 2
+    ), "Shape dimension D encodes width should be equal to 1."
+    assemble_standard_shapes(
+        gdspy.Rectangle,
+        params,
+        mask,
+        cell_size,
+        block_size,
+        savepath,
+        gds_unit,
+        gds_precision,
+        marker_size,
+        number_of_points,
+    )
+    return
+
+
+def assemble_standard_shapes(
+    cell_fun,
+    params,
+    mask,
+    cell_size,
+    block_size,
+    savepath,
+    gds_unit=1e-6,
+    gds_precision=1e-9,
+    marker_size=250e-6,
+    number_of_points=9,
+):
     assert len(cell_size) == 2
     assert len(block_size) == 2
     assert np.all(np.greater_equal(block_size, cell_size))
     assert len(params.shape) == 3
     assert len(mask.shape) == 2
     assert mask.shape == params.shape[0:2]
-    assert params.shape[-1] == 1, "Shape dimension D should be equal to 1 (diameter)"
 
     # upsample the params to match the target blocks
     params_, mask = upsample_block(params, mask, cell_size, block_size)
@@ -55,8 +167,8 @@ def assemble_nanocylinder_gds(
                 xoffset = cell_size[1] * xi / gds_unit
                 yoffset = cell_size[0] * yi / gds_unit
                 radius = params_[yi, xi, 0] / gds_unit
-                circle = gdspy.Round((xoffset, yoffset), radius, number_of_points=9)
-                cell.add(circle)
+                shape = cell_fun((xoffset, yoffset), radius, number_of_points=9)
+                cell.add(shape)
 
     ### Add some lens markers
     hx = cell_size[1] * pshape[1] / gds_unit
