@@ -23,7 +23,7 @@ By treating optical layers in the same fashion as standard, differentiable neura
 ## Version Notes (Version 2.0.0)
 - This repository is the home for the new and maintained version of DFlat. It replaces DFlat-Tensorflow.
 - Note that this package is no longer a direct port of pytorch-tensorflow but is a complete rewrite (re-)released in February 2024. 
-- The structure of the software is completely revamped and the algorithms used--in particular for field propagation--is not the same as before. The original pytorch version (now deprecated) is archived as a seperate branch only for archival purposes.
+- The structure of the software is completely revamped and the algorithms used--in particular for field propagation--are not the same as before. The original pytorch version (now deprecated) is archived and kept as a branch.
 
 ## Usage and Documentation:
 - Documentation and a new project page coming alongside tutorials in February 2024.
