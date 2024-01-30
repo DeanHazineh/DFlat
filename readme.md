@@ -14,6 +14,7 @@ D-Flat provides users with:
 - A validated, auto-differentiable framework for field propagation, point-spread function calculations, and image rendering built on Pytorch.
 - A growing set of pre-trained, efficient neural networks to model the optical response of metasurface cells (alongside the released datasets).
 - A new and simple design architecture for adding your own datasets and training your own models.
+- (Coming soon) Accessibility via downloading from the PyPI index.
 - (Coming soon) An auto-differentiable field solver (RCWA) packaged in an easy to use module for building new datasets or optimizing small metasurfaces.
 - (Coming later) A new set of modules for freeform cell design.
 
