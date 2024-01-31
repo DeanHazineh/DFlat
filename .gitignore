@@ -3,11 +3,11 @@
 **.egg-info**
 **build*
 
-**.mat
 **.zip
 **.pickle
 **.ckpt
 **.pkl
+dflat/**.mat
 dflat/**.png
 dflat/**.pdf
 dflat/**.ckpt
