@@ -40,7 +40,7 @@ Note that the setup.py file will automatically download pre-trained model checkp
 ```
 ./download_raw_data.sh
 ```
-If bash in unavailable, then you may download the zipped data files at  <a href="https://www.dropbox.com/scl/fi/efzz37tlejkkplo7pe7vs/data.zip?rlkey=malv67btexvfhkyhbiasgrai0&dl=1" target="_blank">. You would then need to manually unzip and place the files in the metasurface/data/ folder. 
+If bash in unavailable, then you may download the zipped data files <a href="https://www.dropbox.com/scl/fi/efzz37tlejkkplo7pe7vs/data.zip?rlkey=malv67btexvfhkyhbiasgrai0&dl=1" target="_blank">here</a>. You would then need to manually unzip and place the files in the metasurface/data/ folder. 
 
 ### (b) Use Dflat on google collab:
 Note that DFlat can be easily installed and used in the cloud on Google Collab if desired by executing the above in the jupyter notebook. This is beneficial if you do not have local access to a gpu. 
