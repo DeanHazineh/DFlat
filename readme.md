@@ -44,7 +44,12 @@ If bash in unavailable, then you may download the zipped data files <a href="htt
 
 ### (b) Use Dflat on google collab:
 Note that DFlat can be easily installed and used in the cloud on Google Collab if desired by executing the above in the jupyter notebook. This is beneficial if you do not have local access to a gpu. 
-
+```
+!git clone https://github.com/DeanHazineh/DFlat
+%cd /content/DFlat
+!python setup.py install
+!./download_raw_data.sh  # (optionally if you need access to raw data used to train the models)
+```
 
 ## Usage and Documentation
 Detailed documentation for the rewritten package and a new project page will be released at the end of February 2024. For now, we highlight two resources for developers and researchers:
