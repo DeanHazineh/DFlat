@@ -42,7 +42,7 @@ Note that the setup.py file will automatically download pre-trained model checkp
 ```
 If bash in unavailable, then you may download the zipped data files <a href="https://www.dropbox.com/scl/fi/efzz37tlejkkplo7pe7vs/data.zip?rlkey=malv67btexvfhkyhbiasgrai0&dl=1" target="_blank">here</a>. You would then need to manually unzip and place the files in the metasurface/data/ folder. 
 
-### (b) Use Dflat on google collab:
+### (b) Use DFlat on google collab:
 Note that DFlat can be easily installed and used in the cloud on Google Collab if desired by executing the above in the jupyter notebook. This is beneficial if you do not have local access to a gpu. 
 ```
 !git clone https://github.com/DeanHazineh/DFlat
@@ -57,7 +57,7 @@ Detailed documentation for the rewritten package and a new project page will be 
  - A simple demo of the workflow can be found at `scripts/demo.ipynb`. 
 
 Google collab versions of current examples can be accesssed online at the links:
-- link
+- <a href="https://colab.research.google.com/drive/1Nl1yhrMeGWyethaRPMgS6hQvrLCByiyY?usp=drive_link" target="_blank">simple_usage_demo</a>
 - link
 
 List of packaged Neural Models and corresponding data:
