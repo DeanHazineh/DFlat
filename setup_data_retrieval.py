@@ -32,13 +32,27 @@ def unzip_file(zip_path, extract_path):
 def unpack_and_move():
     ckpt_fold_names = os.listdir(os.path.join(UNZIP_PATH, "ckpt/"))
     moveto = os.path.join(SCRIPT_DIR, "dflat", "metasurface", "ckpt")
+
     if not os.path.exists(moveto):
         os.makedirs(moveto)
 
     for fname in ckpt_fold_names:
-        shutil.move(
-            os.path.join(UNZIP_PATH, "ckpt", fname), os.path.join(moveto, fname)
-        )
+        source_path = os.path.join(UNZIP_PATH, "ckpt", fname)
+        target_path = os.path.join(moveto, fname)
+
+        if os.path.exists(target_path):
+            if os.path.isdir(target_path):
+                for item in os.listdir(source_path):
+                    shutil.move(
+                        os.path.join(source_path, item), os.path.join(target_path, item)
+                    )
+            else:
+                print(
+                    f"Error: A file with the name '{fname}' already exists in the target directory."
+                )
+        else:
+            shutil.move(source_path, target_path)
+
     return
 
 
