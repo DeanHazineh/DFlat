@@ -1,6 +1,6 @@
 model:
   target: dflat.metasurface.optical_model.NeuralCells
-  ckpt_path: metasurface/ckpt/Nanofins_TiO2_U350H600_Medium/model.ckpt
+  ckpt_path: metasurface/ckpt/Nanoellipse_TiO2_U350H600/model.ckpt
   params:
     trainable_model: False
     param_bounds:
@@ -23,13 +23,13 @@ model:
 
 trainer:
   target: dflat.metasurface.trainer.Trainer_v1
-  data: dflat.metasurface.datasets.Nanofins_TiO2_U350nm_H600nm
-  ckpt_path: metasurface/ckpt/Nanofins_TiO2_U350H600_Medium/model.ckpt
+  data: dflat.metasurface.datasets.Nanoellipse_TiO2_U350nm_H600nm
+  ckpt_path: metasurface/ckpt/Nanoellipse_TiO2_U350H600/model.ckpt
   relative_ckpt: True
   params:
     test_split: 0.10
     learning_rate: .001
-    epochs: 5000
+    epochs: 4999
     batch_size: 65536
     checkpoint_every_n: 50
     update_figure_every_epoch: True

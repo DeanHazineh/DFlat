@@ -1,10 +1,10 @@
 model:
   target: dflat.metasurface.optical_model.NeuralCells
-  ckpt_path: metasurface/ckpt/Nanocylinders_TiO2_U300H600/model.ckpt
+  ckpt_path: metasurface/ckpt/Nanocylinders_Si3N4_U350H600/model.ckpt
   params:
     trainable_model: False
     param_bounds:
-      - [15e-9, 135e-9]
+      - [15e-9, 159e-9]
       - [310e-9, 750e-9]
     nn_config:
       target: dflat.metasurface.nn_siren.SirenNet
@@ -22,8 +22,8 @@ model:
 
 trainer:
   target: dflat.metasurface.trainer.Trainer_v1
-  data: dflat.metasurface.datasets.Nanocylinders_TiO2_U300nm_H600nm
-  ckpt_path: metasurface/ckpt/Nanocylinders_TiO2_U300H600/model.ckpt
+  data: dflat.metasurface.datasets.Nanocylinders_Si3N4_U350nm_H600nm
+  ckpt_path: metasurface/ckpt/Nanocylinders_Si3N4_U350H600/model.ckpt
   relative_ckpt: True
   params:
     test_split: 0.10

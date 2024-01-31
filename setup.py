@@ -1,21 +1,37 @@
+import subprocess
 from setuptools import setup, find_packages
+from setuptools.command.install import install
+from setuptools.command.develop import develop
 
-setup(
-    name="dflat",
-    version="3.0",
-    author="Dean Hazineh",
-    author_email="dhazineh@g.harvard.edu",
-    description="Dflat Version 3. Open source pytorch field propagation and rendering",
-    # long_description=open("README.md").read(),
-    # long_description_content_type="text/markdown",
-    # url='https://github.com/yourusername/yourpackagename',  # Link to your project's GitHub repo
-    packages=find_packages(),  # Automatically find your package directories
-    classifiers=[
-        # Classifiers help users find your project by categorizing it
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",  # Assuming your project is MIT Licensed
-        "Operating System :: OS Independent",
-    ],
-    python_requires=">=3.6",  # Minimum version requirement of the package
-    install_requires=[],
-)
+try:
+    import requests
+except ImportError:
+    subprocess.check_call(["pip", "install", "requests"])
+
+
+class CustomInstallCommand(install):
+    def run(self):
+        install.run(self)
+        from setup_data_retrieval import execute_data_management
+
+        execute_data_management()
+
+
+class CustomDevelopCommand(develop):
+    def run(self):
+        develop.run(self)
+        from setup_data_retrieval import execute_data_management
+
+        execute_data_management()
+
+
+if __name__ == "__main__":
+    setup(
+        python_requires=">=3.9",
+        packages=find_packages(),
+        include_package_data=True,
+        cmdclass={
+            "develop": CustomDevelopCommand,
+            "install": CustomInstallCommand,
+        },
+    )

@@ -104,7 +104,7 @@ class Trainer_v1:
             start_epoch = 0
 
         # Run Training with visualization
-        for epoch in range(start_epoch, epochs):
+        for epoch in range(start_epoch, epochs + 1):
             epoch_pbar = tqdm(
                 enumerate(train_dl), total=len(train_dl), desc=f"Epoch {epoch}"
             )
