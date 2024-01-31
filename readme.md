@@ -58,8 +58,8 @@ Detailed documentation for the rewritten package and a new project page will be 
 
 Google collab versions of current examples can be accesssed online at the links:
 - <a href="https://colab.research.google.com/drive/1Nl1yhrMeGWyethaRPMgS6hQvrLCByiyY?usp=drive_link" target="_blank">simple_usage_demo</a>
-- link
-- 
+- <a href="https://colab.research.google.com/drive/1_EMm7jrbgzsZGX-XHnDIbANr0Xo2ti7u?usp=sharing" target="_blank">model_trainer_and_view</a>
+
 
 ### Pretrained Models and datasets
 List of included pretrained neural models are noted below. You can see the dataset used, training parameters, and model info in the respective config.yaml files in `dflat/metasurface/ckpt/MODEL_NAME/config.yaml`.
