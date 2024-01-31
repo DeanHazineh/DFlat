@@ -21,7 +21,7 @@ D-Flat provides users with:
   
 By treating optical layers in the same fashion as standard, differentiable neural layers, deep learning pipelines can be built to simultaneously optimize optical hardware and ML computational back-ends for the next generation of computational imaging devices.
 
-## Version Notes (Version 2.0.0)
+## Version Notes (v2.0.0)
 - This repository is the home for the new and maintained version of DFlat. It replaces DFlat-Tensorflow.
 - Note that this package is no longer a direct port of pytorch-tensorflow but is a complete rewrite (re-)released in February 2024. 
 - The structure of the software is completely revamped and the algorithms used--in particular for field propagation--are not the same as before. The original pytorch version (now deprecated) is archived and kept as a branch.
@@ -59,10 +59,28 @@ Detailed documentation for the rewritten package and a new project page will be 
 Google collab versions of current examples can be accesssed online at the links:
 - <a href="https://colab.research.google.com/drive/1Nl1yhrMeGWyethaRPMgS6hQvrLCByiyY?usp=drive_link" target="_blank">simple_usage_demo</a>
 - link
+- 
 
-List of packaged Neural Models and corresponding data:
+### Pretrained Models and datasets
+List of included pretrained neural models are noted below. You can see the dataset used, training parameters, and model info in the respective config.yaml files in `dflat/metasurface/ckpt/MODEL_NAME/config.yaml`.
+If you would like to contribute your own data or models to this open-source repository, please email me and I can add it with acknowledgements. 
+| Model Name | 
+| :---:        |  
+| Nanocylinders_Si3N4_U250H600   | 
+| Nanocylinders_Si3N4_U300H600     |
+| Nanocylinders_Si3N4_U350H600     |    
+| Nanocylinders_TiO2_U200H600     |     
+| Nanocylinders_TiO2_U250H600     |     
+| Nanocylinders_TiO2_U300H600     |      
+| Nanocylinders_TiO2_U350H600     |      
+| Nanoellipse_TiO2_U350H600     |     
+| Nanofins_TiO2_U350H600     |       
 
-  
+## Contact:
+This repository is intended to be accessible and community driven. It may not be fully error-proof.
+If you have improvements, fixes, or contributions, please branch and initiate a merge request to master (or email me)!
+For any questions, functionality requests, or other concerns, don't hesitate to contact me at dhazineh@g.harvard.edu. 
+
 ## Credits and Acknowledgements:
 If you utilize DFlat or included data sets for your own work, please consider citing it by using either:
 
