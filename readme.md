@@ -60,17 +60,14 @@ Detailed documentation for the rewritten package and a new project page will be 
 ### Pretrained Models and datasets
 List of included pretrained neural models are noted below. You can see the dataset used, training parameters, and model info in the respective config.yaml files in `dflat/metasurface/ckpt/MODEL_NAME/config.yaml`.
 If you would like to contribute your own data or models to this open-source repository, please email me and I can add it with acknowledgements. 
-| Model Name | 
-| :---:        |  
-| Nanocylinders_Si3N4_U250H600   | 
-| Nanocylinders_Si3N4_U300H600     |
-| Nanocylinders_Si3N4_U350H600     |    
-| Nanocylinders_TiO2_U200H600     |     
-| Nanocylinders_TiO2_U250H600     |     
-| Nanocylinders_TiO2_U300H600     |      
-| Nanocylinders_TiO2_U350H600     |      
-| Nanoellipse_TiO2_U350H600     |     
-| Nanofins_TiO2_U350H600     |       
+| Si3N4 Models                     | TiO2 Models                     |
+|    :---:                         | :---:                           |   
+|                                  | Nanocylinders_TiO2_U200H600     |                    
+| Nanocylinders_Si3N4_U250H600     | Nanocylinders_TiO2_U250H600     |  
+| Nanocylinders_Si3N4_U300H600     | Nanocylinders_TiO2_U300H600     |      
+| Nanocylinders_Si3N4_U350H600     | Nanocylinders_TiO2_U350H600     |    
+|                                  | Nanoellipse_TiO2_U350H600       |     
+|                                  | Nanofins_TiO2_U350H600          |
 
 ## Contact:
 This repository is intended to be accessible and community driven. It may not be fully error-proof.
