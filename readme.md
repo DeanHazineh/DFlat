@@ -53,8 +53,8 @@ Note that DFlat can be easily installed and used in the cloud on Google Collab i
 
 ## Usage and Documentation
 Detailed documentation for the rewritten package and a new project page will be released at the end of February 2024. For now, we highlight two resources for developers and researchers:
- - The script used to train neural models can be found at `scripts/trainer.ipynb` (<a href="https://colab.research.google.com/drive/1Nl1yhrMeGWyethaRPMgS6hQvrLCByiyY?usp=drive_link" target="_blank">google_collab_notebook</a>)
- - A simple demo of the workflow can be found at `scripts/demo.ipynb`. ( <a href="https://colab.research.google.com/drive/1_EMm7jrbgzsZGX-XHnDIbANr0Xo2ti7u?usp=sharing" target="_blank">google_collab_notebook</a>)
+ - The script used to train neural models can be found at `scripts/trainer.ipynb` (<a href="https://colab.research.google.com/drive/1_EMm7jrbgzsZGX-XHnDIbANr0Xo2ti7u?usp=sharing" target="_blank">google_collab_notebook</a>)
+ - A simple demo of the workflow can be found at `scripts/demo.ipynb`. ( <a href="https://colab.research.google.com/drive/1Nl1yhrMeGWyethaRPMgS6hQvrLCByiyY?usp=sharing" target="_blank">google_collab_notebook</a>)
 
 
 ### Pretrained Models and datasets
