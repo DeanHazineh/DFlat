@@ -34,7 +34,7 @@ By treating optical layers in the same fashion as standard, differentiable neura
 Install the local repository to your venv by entering the following in terminal:
 ```
 git clone https://github.com/DeanHazineh/DFlat
-pip install .
+python setup.py install 
 ```
 Note that the setup.py file will automatically download pre-trained model checkpoints. No part of this repostiory requires the raw data unless you want to re-train or continue training some models. To fetch the metasurface library data, you may run the bash script in terminal:
 ```
