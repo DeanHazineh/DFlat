@@ -26,8 +26,6 @@ By treating optical layers in the same fashion as standard, differentiable neura
 - Note that this package is no longer a direct port of pytorch-tensorflow but is a complete rewrite (re-)released in February 2024. 
 - The structure of the software is completely revamped and the algorithms used--in particular for field propagation--are not the same as before. The original pytorch version (now deprecated) is archived and kept as a branch.
 - (Coming soon) Accessibility via downloading from the PyPI index.
-- (Coming soon) An auto-differentiable field solver (RCWA) packaged in an easy to use module for building new datasets or optimizing small metasurfaces.
-- (Coming later) A new set of modules for freeform cell design.
 
 ## Installation 
 ### (a) Install and run DFlat locally:
