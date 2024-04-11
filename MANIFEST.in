@@ -1,0 +1,3 @@
+include *.txt
+include *.csv
+recursive-include dflat *.txt *.csv
