@@ -1,7 +1,7 @@
 import torch
 import torch.optim as optim
 import numpy as np
-
+from tqdm import tqdm
 from .load_utils import load_optical_model
 from .latent import latent_to_param
 
@@ -12,8 +12,9 @@ def reverse_lookup_optimize(
     wavelength_set_m,
     model_config_path,
     lr=1e-1,
-    err_thresh=0.1,
+    err_thresh=1e-2,
     max_iter=1000,
+    opt_phase_only=False,
 ):
     """Given a stack of wavelength dependent amplitude and phase profiles, runs a reverse optimization to identify the nanostructures that
     implements the desired profile across wavelength by minimizing the mean absolute errors of complex fields.
@@ -37,6 +38,7 @@ def reverse_lookup_optimize(
     ), "Wavelength list should match amp,phase wavelength dim (dim3)."
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Running optimization with device {device}")
     model = load_optical_model(model_config_path).to(device)
     pg = model.dim_out // 3
     assert pg == P, f"Polarization dimension of amp, phase (dim1) expected to be {pg}."
@@ -64,24 +66,37 @@ def reverse_lookup_optimize(
     err = 1e3
     steps = 0
     err_list = []
+    pbar = tqdm(total=max_iter, desc="Optimization Progress")
     while err > err_thresh:
         if steps >= max_iter:
+            pbar.close()
             break
 
         optimizer.zero_grad()
         pred_amp, pred_phase = model(
             latent_to_param(z), wavelength, pre_normalized=True
         )
-        pred_field = torch.complex(pred_amp, torch_zero) * torch.exp(
-            torch.complex(torch_zero, pred_phase)
-        )
 
-        loss = torch.mean(torch.abs(pred_field - target_field))
+        if opt_phase_only:
+            loss = torch.mean(
+                torch.abs(
+                    torch.exp(torch.complex(torch_zero, pred_phase))
+                    - torch.exp(torch.complex(torch_zero, phase))
+                )
+            )
+        else:
+            pred_field = torch.complex(pred_amp, torch_zero) * torch.exp(
+                torch.complex(torch_zero, pred_phase)
+            )
+            loss = torch.mean(torch.abs(pred_field - target_field))
         loss.backward()
         optimizer.step()
         err = loss.item()
         steps += 1
         err_list.append(err)
+        pbar.update(1)
+        pbar.set_description(f"Loss: {err:.4f}")
+    pbar.close()
 
     op_param = latent_to_param(z).detach().cpu().numpy()
     return op_param, model.denormalize(op_param), err_list

@@ -9,16 +9,7 @@ fontsize_cbar = 8.0
 fontsize_legend = 8.0
 
 
-def addAxis(thisfig, n1, n2, maxnumaxis=""):
-    axlist = []
-    counterval = maxnumaxis if maxnumaxis else n1 * n2
-    for i in range(counterval):
-        axlist.append(thisfig.add_subplot(n1, n2, i + 1))
-
-    return axlist
-
-
-def addColorbar(
+def add_colorbar(
     fig,
     ax,
     im,
@@ -39,7 +30,7 @@ def addColorbar(
     return
 
 
-def formatPlot(
+def format_plot(
     fig,
     ax,
     xlabel="",
@@ -78,7 +69,7 @@ def formatPlot(
         ax.set_ylabel("")
 
     if addcolorbar:
-        addColorbar(fig, ax, imhandle, cbartitle, fs_cbar, fs_ticks)
+        add_colorbar(fig, ax, imhandle, cbartitle, fs_cbar, fs_ticks)
     else:
         divider2 = make_axes_locatable(ax)
         cax2 = divider2.append_axes("right", size="8%", pad=0.05)
@@ -99,3 +90,16 @@ def formatPlot(
 
     # Set aspect ratio
     ax.set_aspect(setAspect)
+
+
+def axis_off(ax):
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["bottom"].set_visible(False)
+    ax.spines["left"].set_visible(False)
+
+    # Hide the ticks and tick labels
+    ax.tick_params(axis="x", which="both", bottom=False, top=False, labelbottom=False)
+    ax.tick_params(axis="y", which="both", left=False, right=False, labelleft=False)
+
+    return

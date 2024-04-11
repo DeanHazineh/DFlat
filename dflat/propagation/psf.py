@@ -116,7 +116,6 @@ class PointSpreadFunction(nn.Module):
         init_shape = amplitude.shape
         amplitude = amplitude.view(-1, *init_shape[-3:])
         phase = phase.view(-1, *init_shape[-3:])
-        print(amplitude.shape, phase.shape)
 
         N = amplitude.shape[0]
         Z = len(ps_locs_m)

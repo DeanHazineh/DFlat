@@ -1,5 +1,6 @@
 import zipfile
 import os
+import requests
 import shutil
 
 CKPT_LINK = "https://www.dropbox.com/scl/fi/83vpqe8zolh9tj6g84iwz/ckpt.zip?rlkey=1p6l69n3r8at626hx2m5om1zy&dl=1"
@@ -9,8 +10,6 @@ UNZIP_PATH = os.path.join(SCRIPT_DIR, "temp_fold/")
 
 
 def download_file(url, save_path):
-    import requests
-
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
         with open(save_path, "wb") as f:

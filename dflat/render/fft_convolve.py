@@ -9,34 +9,90 @@ def general_convolve(image, filter, rfft=False):
     """Runs the Fourier space convolution between an image and filter, where the filter kernels may have a different size from the image shape.
 
     Args:
-        `image` (float or complex): Input image to apply the convolution filter kernel to, of shape [..., Ny, Nx]
-        `filter` (float or complex): Convolutional filter kernel, of shape [..., My, Mx], but the same rank as the image input
+        `image` (tf.float or tf.complex): Input image to apply the convolution filter kernel to, of shape [..., Ny, Nx]
+        `filter` (tf.float or tf.complex): Convolutional filter kernel, of shape [..., My, Mx], but the same rank as the image input
         `rfft` (bool, optional): Flag to use real rfft instead of the general fft. Defaults to False.
 
     Returns:
-        float or complex: Image with the filter convolved on the inner-most two dimensions
+        tf.float or tf.complex: Image with the filter convolved on the inner-most two dimensions
     """
     init_image_shape = image.shape
-    imh, imw = init_image_shape[-2:]
+    im_ny = init_image_shape[-2]
+    im_nx = init_image_shape[-1]
 
     init_filter_shape = filter.shape
-    fh, fw = init_filter_shape[-2:]
+    filt_ny = init_filter_shape[-2]
+    filt_nx = init_filter_shape[-1]
 
-    # Pad image to the filter size if image is smaller than the filter
-    # and pad filter to the image size
-    image = resize_with_crop_or_pad(
-        image, np.maximum(imh, fh), np.maximum(imw, fw), False
-    )
+    # If the image is smaller than the filter size, then increase the image size
+    if im_ny < filt_ny or im_nx < filt_nx:
+        image = resize_with_crop_or_pad(
+            image, np.maximum(im_ny, filt_ny), np.maximum(im_nx, filt_nx), False
+        )
+
+    # Zero pad the image with half the filter dimensionality and ensure the image is odd (non-cyclic boundary)
+    padby = (len(init_image_shape) * 2) * [0]
+    if np.mod(im_nx, 2) == 0 and np.mod(filt_nx, 2) == 0:
+        padby[0:2] = [filt_nx // 2, filt_nx // 2 + 1]
+    else:
+        padby[0:2] = [filt_nx // 2, filt_nx // 2]
+    if np.mod(im_ny, 2) == 0 and np.mod(filt_ny, 2) == 0:
+        padby[2:4] = [filt_ny // 2, filt_ny // 2 + 1]
+    else:
+        padby[2:4] = [filt_ny // 2, filt_ny // 2]
+    image = F.pad(image, padby, mode="constant", value=0.0)
+
+    ### Pad the psf to match the new image dimensionality
     image_shape = image.shape
-    filter_resh = resize_with_crop_or_pad(
-        filter, image_shape[-2], image_shape[-1], radial_flag=False
-    )
+    filter_resh = resize_with_crop_or_pad(filter, *image_shape[-2:], radial_flag=False)
 
-    # Run the convolution in frequency space
+    ### Run the convolution
     image = torch.real(fourier_convolve(image, filter_resh, rfft))
 
-    # Undo odd padding if it was done before FFT
-    image = resize_with_crop_or_pad(image, imh, imw, False)
+    ### Undo odd padding if it was done before FFT
+    image = resize_with_crop_or_pad(image, *init_image_shape[-2:], False)
+    return image
+
+
+def weiner_deconvolve(image, filter, const=1e-4, abs=False):
+    init_image_shape = image.shape
+    im_ny = init_image_shape[-2]
+    im_nx = init_image_shape[-1]
+
+    init_filter_shape = filter.shape
+    filt_ny = init_filter_shape[-2]
+    filt_nx = init_filter_shape[-1]
+
+    # If the image is smaller than the filter size, then we should increase the image
+    if im_ny < filt_ny or im_nx < filt_nx:
+        image = resize_with_crop_or_pad(
+            image, np.maximum(im_ny, filt_ny), np.maximum(im_nx, filt_nx), False
+        )
+
+    # Zero pad the image with half the filter dimensionality and ensure the image is odd
+    padby = (len(init_image_shape) * 2) * [0]
+    if np.mod(im_nx, 2) == 0 and np.mod(filt_nx, 2) == 0:
+        padby[0:2] = [filt_nx // 2, filt_nx // 2 + 1]
+    else:
+        padby[0:2] = [filt_nx // 2, filt_nx // 2]
+    if np.mod(im_ny, 2) == 0 and np.mod(filt_ny, 2) == 0:
+        padby[2:4] = [filt_ny // 2, filt_ny // 2 + 1]
+    else:
+        padby[2:4] = [filt_ny // 2, filt_ny // 2]
+    image = F.pad(image, padby, mode="constant", value=0.0)
+
+    ### Pad the psf to match the new image dimensionality
+    image_shape = image.shape
+    filter_resh = resize_with_crop_or_pad(filter, *image_shape[-2:], radial_flag=False)
+
+    ### Run the deconvolution
+    kft = fft2(filter_resh)
+    G = torch.conj(kft) / (torch.conj(kft) * kft + const)
+    image = torch.real(ifft2(fft2(image) * G))
+    image = torch.abs(image) if abs else image
+
+    #### Undo odd padding if it was done before FFT
+    image = resize_with_crop_or_pad(image, *init_image_shape[-2:], False)
     return image
 
 

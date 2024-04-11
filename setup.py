@@ -7,22 +7,19 @@ try:
     import requests
 except ImportError:
     subprocess.check_call(["pip", "install", "requests"])
+from setup_data_retrieval import execute_data_management
 
 
 class CustomInstallCommand(install):
     def run(self):
-        install.run(self)
-        from setup_data_retrieval import execute_data_management
-
         execute_data_management()
+        install.run(self)
 
 
 class CustomDevelopCommand(develop):
     def run(self):
-        develop.run(self)
-        from setup_data_retrieval import execute_data_management
-
         execute_data_management()
+        develop.run(self)
 
 
 if __name__ == "__main__":
