@@ -10,7 +10,7 @@ def reverse_lookup_optimize(
     amp,
     phase,
     wavelength_set_m,
-    model_config_path,
+    model_name,
     lr=1e-1,
     err_thresh=1e-2,
     max_iter=1000,
@@ -23,7 +23,7 @@ def reverse_lookup_optimize(
         amp (float): Target amplitude of shape [B, Pol, Lam, H, W].
         phase (float): Target phase of shape [B, Pol, Lam, H, W].
         wavelength_set_m (list): List of wavelengths corresponding to the Lam dimension of the target profiles.
-        model_config_path (str): Relative path for the model config file like "metasurface/ckpt/..."
+        model_name (str): Model name. Either in the local path "DFlat/Models/NAME/" or to be retrieved from online.
         lr (float, optional): Optimization learning rate. Defaults to 1e-1.
         err_thresh (float, optional): Early termination threshold. Defaults to 0.1.
         max_iter (int, optional): Maximum number of steps. Defaults to 1000.
@@ -39,7 +39,8 @@ def reverse_lookup_optimize(
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Running optimization with device {device}")
-    model = load_optical_model(model_config_path).to(device)
+    model = load_optical_model(model_name).to(device)
+
     pg = model.dim_out // 3
     assert pg == P, f"Polarization dimension of amp, phase (dim1) expected to be {pg}."
 

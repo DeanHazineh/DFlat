@@ -21,8 +21,6 @@ def latent_to_param(z_latent, pmin=0, pmax=1, func="tanh"):
         return ((torch.tanh(z_latent) + 1) / 2 * (pmax - pmin)) + pmin
     elif func == "sigmoid":
         return 1 / (1 + torch.exp(-z_latent))
-    elif func == "sine":
-        return torch.sin(z_latent)
 
 
 def param_to_latent(p_param, pmin=0.0, pmax=1.0, func="tanh"):
@@ -46,5 +44,3 @@ def param_to_latent(p_param, pmin=0.0, pmax=1.0, func="tanh"):
         )
     elif func == "sigmoid":
         return torch.log(p_param / (1 - p_param))
-    elif func == "sine":
-        return torch.asin(p_param)

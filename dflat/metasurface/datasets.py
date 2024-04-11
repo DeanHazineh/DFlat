@@ -4,13 +4,28 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 from torch.utils.data import Dataset
-from dflat.plot_utilities.mp_format import formatPlot
+import os
+#import subprocess
+import requests
 
+from dflat.plot_utilities.mp_format import format_plot
 
-def get_path_to_data(file_name: str):
-    resource_path = Path(__file__).parent / "data/"
-    return resource_path.joinpath(file_name)
+def download_data(dataset_name, storage_path):
+    if not os.path.exists("DFlat"):
+        os.mkdir("DFlat/")
+    if not os.path.exists("DFlat/Datasets/"):
+        os.mkdir("DFlat/Datasets/")
 
+    file_path = os.path.join("DFlat/Datasets/", dataset_name)
+    if not os.path.exists(file_path):
+        print("Downloading dataset from online storage.")
+        with requests.get(storage_path, stream=True) as response:
+            response.raise_for_status()  # Raises a HTTPError if the response has an error status code
+            with open(file_path, 'wb') as file:
+                for chunk in response.iter_content(chunk_size=8192): 
+                    file.write(chunk)
+            
+    return file_path
 
 ###
 class Nanocylinder_base1(Dataset):
@@ -31,7 +46,7 @@ class Nanocylinder_base1(Dataset):
 
         fig, ax = plt.subplots(1, 2, figsize=(12, 5))
         ax[0].imshow(trans)
-        formatPlot(
+        format_plot(
             fig,
             ax[0],
             xvec=r,
@@ -43,7 +58,7 @@ class Nanocylinder_base1(Dataset):
             setAspect="auto",
         )
         ax[1].imshow(phase, cmap="hsv")
-        formatPlot(
+        format_plot(
             fig,
             ax[1],
             xvec=r,
@@ -55,17 +70,20 @@ class Nanocylinder_base1(Dataset):
             setAspect="auto",
         )
 
+        print(savepath)
         if savepath is not None:
-            plt.savefig(savepath + self.__class__.__name__ + ".png")
+            plt.savefig(os.path.join(savepath, self.__class__.__name__ + ".png"))
             plt.close()
 
 
 class Nanocylinders_TiO2_U200nm_H600nm(Nanocylinder_base1):
     def __init__(self):
-        datpath = get_path_to_data(
-            "Nanocylinders_TiO2_Unit200nm_height600nm_FDTD.pickle"
-        )
-        with open(datpath, "rb") as file:
+        super().__init__()
+
+        dataset_name = "Nanocylinders_TiO2_Unit200nm_height600nm_FDTD.pickle"
+        online_path = "https://www.dropbox.com/scl/fi/48g33fzfmfrzlm6e3fwst/Nanocylinders_TiO2_Unit200nm_height600nm_FDTD.pickle?rlkey=la94xsaro6ulmvw3l6dgz5itb&dl=1"
+        file_path = download_data(dataset_name, online_path)
+        with open(file_path, "rb") as file:
             data = pickle.load(file)
             rvec = data["rvec"]
             lam = data["lam"]
@@ -102,10 +120,12 @@ class Nanocylinders_TiO2_U200nm_H600nm(Nanocylinder_base1):
 
 class Nanocylinders_TiO2_U250nm_H600nm(Nanocylinder_base1):
     def __init__(self):
-        datpath = get_path_to_data(
-            "Nanocylinders_TiO2_Unit250nm_height600nm_FDTD.pickle"
-        )
-        with open(datpath, "rb") as file:
+        super().__init__()
+
+        dataset_name = "Nanocylinders_TiO2_U250nm_H600nm.pickle"
+        online_path = "https://www.dropbox.com/scl/fi/2yybb9lx1ge3zs5ep7pf2/Nanocylinders_TiO2_Unit250nm_height600nm_FDTD.pickle?rlkey=ioubnrarcnvnr4lwcdyqovtw4&dl=1"
+        file_path = download_data(dataset_name, online_path)
+        with open(file_path, "rb") as file:
             data = pickle.load(file)
             rvec = data["rvec"]
             lam = data["lam"]
@@ -142,11 +162,12 @@ class Nanocylinders_TiO2_U250nm_H600nm(Nanocylinder_base1):
 
 class Nanocylinders_TiO2_U300nm_H600nm(Nanocylinder_base1):
     def __init__(self):
-        datpath = get_path_to_data(
-            "Nanocylinders_TiO2_Unit300nm_height600nm_FDTD.pickle"
-        )
+        super().__init__()
 
-        with open(datpath, "rb") as file:
+        dataset_name = "Nanocylinders_TiO2_U300nm_H600nm.pickle"
+        online_path = "https://www.dropbox.com/scl/fi/uyltiglfm5bbr8pqmvf2p/Nanocylinders_TiO2_Unit300nm_height600nm_FDTD.pickle?rlkey=jfekg6i0gcqzv0fxxybqomz52&dl=1"
+        file_path = download_data(dataset_name, online_path)
+        with open(file_path, "rb") as file:
             # Load the data from the file
             data = pickle.load(file)
             rvec = data["rvec"]
@@ -184,11 +205,12 @@ class Nanocylinders_TiO2_U300nm_H600nm(Nanocylinder_base1):
 
 class Nanocylinders_TiO2_U350nm_H600nm(Nanocylinder_base1):
     def __init__(self):
-        datpath = get_path_to_data(
-            "Nanocylinders_TiO2_Unit350nm_height600nm_FDTD.pickle"
-        )
+        super().__init__()
 
-        with open(datpath, "rb") as file:
+        dataset_name = "Nanocylinders_TiO2_U350nm_H600nm.pickle"
+        online_path = "https://www.dropbox.com/scl/fi/k7z6pg6d55ncaonjdkrkr/Nanocylinders_TiO2_Unit350nm_height600nm_FDTD.pickle?rlkey=h9xfg6w45756d8ds8818yqa1z&dl=1"
+        file_path = download_data(dataset_name, online_path)
+        with open(file_path, "rb") as file:
             # Load the data from the file
             data = pickle.load(file)
             rvec = data["rvec"]
@@ -227,9 +249,11 @@ class Nanocylinders_TiO2_U350nm_H600nm(Nanocylinder_base1):
 ###
 class Nanocylinders_Si3N4_U250nm_H600nm(Nanocylinder_base1):
     def __init__(self):
-        datpath = get_path_to_data(
-            "Nanocylinders_Si3N4_Unit250nm_height600nm_FDTD.pickle"
-        )
+        super().__init__()
+
+        dataset_name = "Nanocylinders_Si3N4_U250nm_H600nm.pickle"
+        online_path = "https://www.dropbox.com/scl/fi/ur45okx30ssetohzf066i/Nanocylinders_Si3N4_Unit250nm_height600nm_FDTD.pickle?rlkey=hpeoe2we0wjsunac7vfo6k2yo&dl=1"
+        datpath = download_data(dataset_name, online_path)
         with open(datpath, "rb") as file:
             data = pickle.load(file)
             rvec = data["rvec"]
@@ -266,9 +290,11 @@ class Nanocylinders_Si3N4_U250nm_H600nm(Nanocylinder_base1):
 
 class Nanocylinders_Si3N4_U300nm_H600nm(Nanocylinder_base1):
     def __init__(self):
-        datpath = get_path_to_data(
-            "Nanocylinders_Si3N4_Unit300nm_height600nm_FDTD.pickle"
-        )
+        super().__init__()
+
+        dataset_name = "Nanocylinders_Si3N4_U300nm_H600nm.pickle"
+        online_path = "https://www.dropbox.com/scl/fi/5m2uyqa9lj9h5fesxoy8o/Nanocylinders_Si3N4_Unit300nm_height600nm_FDTD.pickle?rlkey=opb7hoqomofiga9ne46wyw0uv&dl=1"
+        datpath = download_data(dataset_name, online_path)
         with open(datpath, "rb") as file:
             data = pickle.load(file)
             rvec = data["rvec"]
@@ -305,9 +331,11 @@ class Nanocylinders_Si3N4_U300nm_H600nm(Nanocylinder_base1):
 
 class Nanocylinders_Si3N4_U350nm_H600nm(Nanocylinder_base1):
     def __init__(self):
-        datpath = get_path_to_data(
-            "Nanocylinders_Si3N4_Unit350nm_height600nm_FDTD.pickle"
-        )
+        super().__init__()
+
+        dataset_name = "Nanocylinders_Si3N4_U350nm_H600nm.pickle"
+        online_path = "https://www.dropbox.com/scl/fi/mfh11d3aowh3t8warp1xc/Nanocylinders_Si3N4_Unit350nm_height600nm_FDTD.pickle?rlkey=o66zjfj2poafyssqmi65bt7n0&dl=1"
+        datpath = download_data(dataset_name, online_path)
         with open(datpath, "rb") as file:
             data = pickle.load(file)
             rvec = data["rvec"]
@@ -345,7 +373,9 @@ class Nanocylinders_Si3N4_U350nm_H600nm(Nanocylinder_base1):
 ###
 class Nanofins_TiO2_U350nm_H600nm(Dataset):
     def __init__(self):
-        datpath = get_path_to_data("Nanofins_TiO2_Unit350nm_Height600nm_FDTD.mat")
+        dataset_name = "Nanofins_TiO2_U350nm_H600nm.mat"
+        online_path = "https://www.dropbox.com/scl/fi/l3bitqamxinumq101s49e/Nanofins_TiO2_Unit350nm_Height600nm_FDTD.mat?rlkey=71cas4mcokl44bldmu17xdy72&dl=1"
+        datpath = download_data(dataset_name, online_path)
 
         # Raw phase and transmittance data has shape [Npol=2, leny=49, lenx=49, wavelength=441]
         data = scipy.io.loadmat(datpath)
@@ -394,21 +424,21 @@ class Nanofins_TiO2_U350nm_H600nm(Dataset):
         fig, ax = plt.subplots(2, 4, figsize=(17, 9))
         for i in range(2):
             ax[i, 0].imshow(trans[i, sh[1] // 2, :, :], vmin=0, vmax=1)
-            formatPlot(
+            format_plot(
                 fig,
                 ax[i, 0],
                 yvec=lam,
                 xvec=lx,
                 setAspect="auto",
-                ylabel="x-pol \n width x (nm)"
-                if i == 0
-                else "y-pol \n wavelength (nm)",
+                ylabel=(
+                    "x-pol \n width x (nm)" if i == 0 else "y-pol \n wavelength (nm)"
+                ),
                 title="transmittance",
                 xlabel="wavelength (nm) ",
             )
 
             ax[i, 1].imshow(trans[i, :, sh[2] // 2, :], vmin=0, vmax=1)
-            formatPlot(
+            format_plot(
                 fig,
                 ax[i, 1],
                 yvec=ly,
@@ -423,7 +453,7 @@ class Nanofins_TiO2_U350nm_H600nm(Dataset):
             ax[i, 2].imshow(
                 phase[i, sh[1] // 2, :, :], vmin=0, vmax=2 * np.pi, cmap="hsv"
             )
-            formatPlot(
+            format_plot(
                 fig,
                 ax[i, 2],
                 yvec=lam,
@@ -437,7 +467,7 @@ class Nanofins_TiO2_U350nm_H600nm(Dataset):
             ax[i, 3].imshow(
                 phase[i, :, sh[2] // 2, :], vmin=0, vmax=2 * np.pi, cmap="hsv"
             )
-            formatPlot(
+            format_plot(
                 fig,
                 ax[i, 3],
                 yvec=ly,
@@ -450,7 +480,7 @@ class Nanofins_TiO2_U350nm_H600nm(Dataset):
             )
 
         if savepath is not None:
-            plt.savefig(savepath + self.__class__.__name__ + ".png")
+            plt.savefig(os.path.join(savepath, self.__class__.__name__ + ".png"))
             plt.close()
 
         return
@@ -459,10 +489,13 @@ class Nanofins_TiO2_U350nm_H600nm(Dataset):
 class Nanoellipse_TiO2_U350nm_H600nm(Nanofins_TiO2_U350nm_H600nm):
     def __init__(self):
         super().__init__()
-        datapath = get_path_to_data("Nanoellipse_TiO2_Unit350nm_Height600nm_FDTD.mat")
-        data = scipy.io.loadmat(datapath)
+
+        dataset_name = "Nanoellipse_TiO2_U350nm_H600nm.mat"
+        online_path = "https://www.dropbox.com/scl/fi/y3kn6nplwbr689p3up94p/Nanoellipse_TiO2_Unit350nm_Height600nm_FDTD.mat?rlkey=98krxmsfrr0ixiul1934u63qc&dl=1"
+        datpath = download_data(dataset_name, online_path)
 
         # Phase and transmission has shape [Npol=2, leny=49, lenx=49, wavelength=441]
+        data = scipy.io.loadmat(datpath)
         self.phase = data["phase"]
         self.trans = np.sqrt(np.clip(data["transmission"], 0, np.finfo(np.float32).max))
         self.params = [data["lenx"], data["leny"], data["wavelength_m"].flatten()]
@@ -490,3 +523,4 @@ class Nanoellipse_TiO2_U350nm_H600nm(Nanofins_TiO2_U350nm_H600nm):
             ],
             -1,
         )
+
