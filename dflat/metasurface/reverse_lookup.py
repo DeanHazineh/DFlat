@@ -46,7 +46,7 @@ def reverse_lookup_optimize(
 
     # z = np.random.rand(B, H, W, model.dim_in - 1)
     z = np.zeros((B, H, W, model.dim_in - 1))
-    z = torch.tensor(z, device="cuda", dtype=torch.float32, requires_grad=True)
+    z = torch.tensor(z, device=device, dtype=torch.float32, requires_grad=True)
     wavelength = (
         torch.tensor(wavelength_set_m)
         if not torch.is_tensor(wavelength_set_m)
