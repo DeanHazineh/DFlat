@@ -25,53 +25,34 @@ By treating optical layers in the same fashion as standard, differentiable neura
 
 ## Version Notes (v3.0.0)
 Updated on April 11, 2024 from V2.0.0
+- Documentation is still in development :o 
 - v3 You can now donwload this package from the PyPi Index!
 - v3 Datasets and pre-trained models are now downloaded when called insetad of during install. Models are now initialized by their name instead of by paths to config files. 
 - v2 This repository is the home for the new and maintained version of DFlat. It replaces DFlat-Tensorflow.
 - v2 Note that this package is no longer a direct port of pytorch-tensorflow but is a complete rewrite (re-)released in February 2024.
 - v2 The structure of the software is completely revamped and the algorithms used--in particular for field propagation--are not the same as before. The original pytorch version (now deprecated) is archived and kept as a branch.
 
-## Installation
-
-### (a) Install and run DFlat locally:
-
-Install the local repository to your venv by entering the following in terminal:
-
+## Installation 
+You can install this package from the PyPI index simply via: 
+```
+pip install dflat
+```
+You  may also find it beneficial to work directly with the repository in editable mode via:
 ```
 git clone https://github.com/DeanHazineh/DFlat
-python setup.py develop
-```
-
-Note that the setup.py file will automatically download pre-trained model checkpoints. No part of this repostiory requires the raw data unless you want to re-train or continue training some models. To fetch the metasurface library data, you may run the bash script in terminal:
-
-```
-./download_raw_data.sh
-```
-
-If bash in unavailable, then you may download the zipped data files <a href="https://www.dropbox.com/scl/fi/efzz37tlejkkplo7pe7vs/data.zip?rlkey=malv67btexvfhkyhbiasgrai0&dl=1" target="_blank">here</a>. You would then need to manually unzip and place the files in the metasurface/data/ folder.
-
-### (b) Use DFlat on google collab:
-
-Note that DFlat can be easily installed and used in the cloud on Google Collab if desired by executing the above in the jupyter notebook. This is beneficial if you do not have local access to a gpu.
-
-```
-!git clone https://github.com/DeanHazineh/DFlat
-%cd /content/DFlat
-!python setup.py develop
-!./download_raw_data.sh  # (optionally if you need access to raw data used to train the models)
+pip install -e .
 ```
 
 ## Usage and Documentation
 
-Detailed documentation for the rewritten package and a new project page will be released at the end of February 2024. For now, we highlight two resources for developers and researchers:
-
-- The script used to train neural models can be found at `scripts/trainer.ipynb` (<a href="https://colab.research.google.com/drive/1_EMm7jrbgzsZGX-XHnDIbANr0Xo2ti7u?usp=sharing" target="_blank">google_collab_notebook</a>)
-- A simple demo of the workflow can be found at `scripts/demo.ipynb`. ( <a href="https://colab.research.google.com/drive/1Nl1yhrMeGWyethaRPMgS6hQvrLCByiyY?usp=sharing" target="_blank">google_collab_notebook</a>)
+Detailed documentation for the rewritten package and a new project page will be released in the future. For now, we highlight two resources for developers and researchers:
+- A script used to train neural models can be found in `scripts/trainer.ipynb`. The model architecture is specified in the config.yaml file and you can play around with editing it. 
+- A simple demo of the workflow can be found at `scripts/demo.ipynb`.
 
 ### Pretrained Models and datasets
 
-List of included pretrained neural models are noted below. You can see the dataset used, training parameters, and model info in the respective config.yaml files in `dflat/metasurface/ckpt/MODEL_NAME/config.yaml`.
-If you would like to contribute your own data or models to this open-source repository, please email me and I can add it with acknowledgements.
+List of pretrained neural models inlcuded at this time are noted below. You can see the dataset used, training parameters, and model info in the respective config.yaml files when the model is downloaded after calling `load_optical_model(MODEL_NAME)`.
+If you would like to contribute your own data or models to this open-source repository, please email me and I can add it with acknowledgements. We aim to make this repository a centralized location for sharing meta-atom datasets and pre-trained neural representations. 
 | Si3N4 Models | TiO2 Models |
 | :---: | :---: |  
 | | Nanocylinders_TiO2_U200H600 |  
@@ -80,6 +61,8 @@ If you would like to contribute your own data or models to this open-source repo
 | Nanocylinders_Si3N4_U350H600 | Nanocylinders_TiO2_U350H600 |  
 | | Nanoellipse_TiO2_U350H600 |  
 | | Nanofins_TiO2_U350H600 |
+
+The datasets will be downloaded and can be played with simply by calling the classes in dflat/metasurface/datsets. For example, when you call `Nanoellipse_TiO2_U350nm_H600nm()`, the corresponding dataset will be downloaded and you can play around with the data and visualizations within that class.
 
 ## Contact:
 
