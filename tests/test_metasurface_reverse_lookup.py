@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
-import torch
+from unittest.mock import patch
+
 from dflat.metasurface import reverse_lookup_optimize 
 
 test_cases = [
@@ -9,7 +10,8 @@ test_cases = [
 ]
 
 @pytest.mark.parametrize("model_name, pol_dim", test_cases)
-def test_reverse_lookup_optimize_real_execution(model_name, pol_dim):
+@patch('torch.cuda.is_available', return_value=False)
+def test_reverse_lookup_optimize_real_execution(mock_cuda_available, model_name, pol_dim):
     B, L, H, W = 1, 1, 3, 4  # Specified dimensions
     # Create random amplitude and phase matrices
     amp = np.random.rand(B, pol_dim, L, H, W).astype(np.float32)

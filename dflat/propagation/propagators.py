@@ -180,13 +180,14 @@ class ASMPropagation(BaseFrequencySpace):
                 amplitude.shape[-2:] == self.in_size
             ), f"Input field size does not match init in_size {self.in_size}."
 
+        device = "cuda" if torch.cuda.is_available() else "cpu"
         amplitude = (
-            torch.tensor(amplitude, dtype=torch.float32).to(device="cuda")
+            torch.tensor(amplitude, dtype=torch.float32).to(device)
             if not torch.is_tensor(amplitude)
             else amplitude.to(dtype=torch.float32)
         )
         phase = (
-            torch.tensor(phase, dtype=torch.float32).to(device="cuda")
+            torch.tensor(phase, dtype=torch.float32).to(device)
             if not torch.is_tensor(phase)
             else phase.to(dtype=torch.float32)
         )
@@ -195,7 +196,7 @@ class ASMPropagation(BaseFrequencySpace):
                 np.array(wavelength_set_m) * self.rescale, dtype=amplitude.dtype
             ).to(amplitude.device)
             if not torch.is_tensor(wavelength_set_m)
-            else wavelength_set_m.to(dtype=amplitude.dtype, device=amplitude.device)
+            else wavelength_set_m.to(dtype=amplitude.dtype)
         )
 
         # Upsample and pad the field prior to fft-based propagation transformation
@@ -362,13 +363,14 @@ class FresnelPropagation(BaseFrequencySpace):
                 amplitude.shape[-2:] == self.in_size
             ), f"Input field size does not match init in_size {self.in_size}."
 
+        device = "cuda" if torch.cuda.is_available() else "cpu"
         amplitude = (
-            torch.tensor(amplitude, dtype=torch.float32).to(device="cuda")
+            torch.tensor(amplitude, dtype=torch.float32).to(device)
             if not torch.is_tensor(amplitude)
             else amplitude.to(dtype=torch.float32)
         )
         phase = (
-            torch.tensor(phase, dtype=torch.float32).to(device="cuda")
+            torch.tensor(phase, dtype=torch.float32).to(device)
             if not torch.is_tensor(phase)
             else phase.to(dtype=torch.float32)
         )
@@ -377,7 +379,7 @@ class FresnelPropagation(BaseFrequencySpace):
                 np.array(wavelength_set_m) * self.rescale, dtype=amplitude.dtype
             ).to(amplitude.device)
             if not torch.is_tensor(wavelength_set_m)
-            else wavelength_set_m.to(dtype=amplitude.dtype, device=amplitude.device)
+            else wavelength_set_m.to(dtype=amplitude.dtype)
         )
 
         # Upsample and pad the field prior to fourier-based propagation transformation
