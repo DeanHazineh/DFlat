@@ -15,6 +15,7 @@ def reverse_lookup_optimize(
     err_thresh=1e-2,
     max_iter=1000,
     opt_phase_only=False,
+    force_cpu=False
 ):
     """Given a stack of wavelength dependent amplitude and phase profiles, runs a reverse optimization to identify the nanostructures that
     implements the desired profile across wavelength by minimizing the mean absolute errors of complex fields.
@@ -37,7 +38,11 @@ def reverse_lookup_optimize(
         len(wavelength_set_m) == L
     ), "Wavelength list should match amp,phase wavelength dim (dim3)."
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if force_cpu:
+        device='cpu'
+    else:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    
     print(f"Running optimization with device {device}")
     model = load_optical_model(model_name).to(device)
 

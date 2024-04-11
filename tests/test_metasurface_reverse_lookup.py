@@ -27,7 +27,8 @@ def test_reverse_lookup_optimize_real_execution(mock_cuda_available, model_name,
         max_iter=3,  # Limiting to 3 iterations
         lr=1e-1,
         err_thresh=1e-2,
-        opt_phase_only=False
+        opt_phase_only=False,
+        force_cpu=True
     )
 
     # Unpack results

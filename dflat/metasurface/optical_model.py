@@ -52,15 +52,16 @@ class NeuralCells(nn.Module):
             params = self.normalize(params)
             wavelength = self.normalize_wavelength(wavelength)
 
+        device = "cuda" if torch.cuda.is_available() else "cpu"
         x = (
-            torch.tensor(params, dtype=torch.float32).to("cuda")
+            torch.tensor(params, dtype=torch.float32).to(device)
             if not torch.is_tensor(params)
-            else params.to(dtype=torch.float32, device="cuda")
+            else params.to(dtype=torch.float32)
         )
         lam = (
-            torch.tensor(wavelength, dtype=torch.float32).to("cuda")
+            torch.tensor(wavelength, dtype=torch.float32).to(device)
             if not torch.is_tensor(wavelength)
-            else wavelength.to(dtype=torch.float32, device="cuda")
+            else wavelength.to(dtype=torch.float32)
         )
         torch_zero = torch.tensor(0.0, dtype=x.dtype).to(device=x.device)
 
