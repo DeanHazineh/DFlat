@@ -35,7 +35,7 @@ Updated on April 11, 2024 from V2.0.0
 ## Installation 
 You can install this package from the PyPI index simply via: 
 ```
-pip install dflat-opt
+pip install dflat_opt
 ```
 You  may also find it beneficial to work directly with the repository in editable mode via:
 ```
