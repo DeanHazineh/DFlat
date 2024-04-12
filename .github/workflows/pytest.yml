@@ -18,10 +18,9 @@ jobs:
           pip install torch 
           pip install .
 
-      - name: Run pytest suite
+      - name: Run pytest suite with coverage
         run: |
-          pytest tests/
-          pytest --cov=dflat tests/
+          pytest --cov=dflat --cov-report=xml tests/
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4.0.1
