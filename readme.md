@@ -13,9 +13,9 @@
 [![Pytest Workflow](https://github.com/DeanHazineh/DFlat-pytorch/actions/workflows/pytest.yml/badge.svg?branch=dflat_v2.0.0)](https://github.com/DeanHazineh/DFlat-pytorch/actions/workflows/pytest.yml)
 ![Version](https://img.shields.io/badge/version-3.0.0-blue)
 
-`D-Flat` is an auto-differentiable design framework for flat optics, specially geared to the design of dielectric metasurfaces for imaging and sensing tasks. This package was first introduced in a 2022 manuscript available at <a href="https://arxiv.org/abs/2207.14780" target="_blank">arxiv</a>. It was later published alongside our paper, <a href="https://deanhazineh.github.io/publications/Multi_Image_Synthesis/MIS_Home.html" target="_blank"> Polarization Multi-Image Synthesis with Birefringent Metasurfaces</a>, in the proceedings of the 2023 IEEE International Conference of Computational Photography (ICCP). It was rewritten in 2024 with Version 2.0.
+`DFlat` is an auto-differentiable design framework for flat optics, specially geared to the design of dielectric metasurfaces for imaging and sensing tasks. This package was first introduced in a 2022 manuscript available at <a href="https://arxiv.org/abs/2207.14780" target="_blank">arxiv</a>. It was later published alongside our paper, <a href="https://deanhazineh.github.io/publications/Multi_Image_Synthesis/MIS_Home.html" target="_blank"> Polarization Multi-Image Synthesis with Birefringent Metasurfaces</a>, in the proceedings of the 2023 IEEE International Conference of Computational Photography (ICCP). It was rewritten in 2024 with Version 2.0.
 
-D-Flat provides users with:
+DFlat provides users with:
 
 - A validated, auto-differentiable framework for field propagation, point-spread function calculations, and image rendering built on Pytorch.
 - A growing set of pre-trained, efficient neural networks to model the optical response of metasurface cells (alongside the released datasets).
@@ -35,7 +35,7 @@ Updated on April 11, 2024 from V2.0.0
 ## Installation 
 You can install this package from the PyPI index simply via: 
 ```
-pip install dflat
+pip install dflat-opt
 ```
 You  may also find it beneficial to work directly with the repository in editable mode via:
 ```
