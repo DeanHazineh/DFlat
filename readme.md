@@ -77,7 +77,7 @@ If you have improvements, fixes, or contributions, please branch and initiate a 
 For any questions, functionality requests, or other concerns, don't hesitate to contact me at dhazineh@g.harvard.edu.
 
 ## Credits and Acknowledgements:
-
+This work was funded in part by the NSF and SONY.
 If you utilize DFlat or included data sets for your own work, please consider citing it by using either:
 
 ```
@@ -102,7 +102,7 @@ If you utilize DFlat or included data sets for your own work, please consider ci
 ```
 
 This work has pulled inspiration from and/or benefitted from previous open-source contributions including:
-
 - Lucidrain - Siren-pytorch
 - Manuel Guizar-Sicairos and Julio C. Guitierrez-Vega - Pyhank
 - Shane Colburn - RCWA_TF
+
