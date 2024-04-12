@@ -20,7 +20,7 @@ jobs:
 
       - name: Run pytest suite with coverage
         run: |
-          pytest --cov=dflat --cov-report=xml tests/
+          pytest --cov=dflat tests/
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4.0.1
