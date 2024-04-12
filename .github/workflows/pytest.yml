@@ -3,7 +3,7 @@ name: Pytest Workflow
 on:
   push:
     branches:
-      - update
+      - main
 
 jobs:
   run_unit_tests:
