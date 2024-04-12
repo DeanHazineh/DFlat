@@ -1,17 +1,11 @@
-name: Pytest Workflow
-
-on:
-  push:
-    branches:
-      - main
-
+name: Pytest Workflow for DFlat
+on: [push, pull_request]
 jobs:
   run_unit_tests:
-    name: Unit Testing
+    name: Package Pytest Suite
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Python
         uses: actions/setup-python@v3
         with:
@@ -27,3 +21,10 @@ jobs:
       - name: Run pytest suite
         run: |
           pytest tests/
+          pytest --cov=dflat tests/
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4.0.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: DeanHazineh/DFlat
