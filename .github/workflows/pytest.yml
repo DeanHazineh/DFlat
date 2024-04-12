@@ -16,7 +16,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest pytest-cov
           pip install torch 
-          pip install .
+          pip install -e .
 
       - name: Run pytest suite with coverage
         run: |
