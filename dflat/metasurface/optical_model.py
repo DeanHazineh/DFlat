@@ -40,18 +40,6 @@ class NeuralCells(nn.Module):
         Returns:
             list: Amplitude and Phase of shape [B, pol, Lam, H, W] where pol is 1 or 2.
         """
-        num_ch = params.shape[-1]
-        assert num_ch == (
-            len(self.param_bounds) - 1
-        ), "Channel dimension is inconsistent with loaded model"
-        assert len(params.shape) == 4
-        assert len(wavelength.shape) == 1
-        b, h, w, c = params.shape
-
-        if not pre_normalized:
-            params = self.normalize(params)
-            wavelength = self.normalize_wavelength(wavelength)
-
         device = "cuda" if torch.cuda.is_available() else "cpu"
         x = (
             torch.tensor(params, dtype=torch.float32).to(device)
@@ -64,6 +52,18 @@ class NeuralCells(nn.Module):
             else wavelength.to(dtype=torch.float32)
         )
         torch_zero = torch.tensor(0.0, dtype=x.dtype).to(device=x.device)
+
+        num_ch = x.shape[-1]
+        assert num_ch == (
+            len(self.param_bounds) - 1
+        ), "Channel dimension is inconsistent with loaded model"
+        assert len(x.shape) == 4
+        assert len(lam.shape) == 1
+        b, h, w, c = x.shape
+
+        if not pre_normalized:
+            x = self.normalize(x)
+            lam = self.normalize_wavelength(lam)
 
         x = rearrange(x, "b h w c -> (b h w) c")
         out = []
