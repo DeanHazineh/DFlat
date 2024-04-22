@@ -63,8 +63,9 @@ def reverse_lookup_optimize(
     # optimize
     optimizer = optim.Adam([z], lr=lr)
     torch_zero = torch.tensor(0.0, dtype=z.dtype, device=device)
-    amp = torch.tensor(amp, dtype=torch.float32, device=device)
-    phase = torch.tensor(phase, dtype=torch.float32, device=device)
+
+    amp = torch.tensor(amp, dtype=torch.float32, device=device) if not torch.is_tensor(amp) else amp.to(dtype=torch.float32, device=device)
+    phase = torch.tensor(phase, dtype=torch.float32, device=device) if not torch.is_tensor(phase) else phase.to(dtype=torch.float32, device=device)
     target_field = torch.complex(amp, torch_zero) * torch.exp(
         torch.complex(torch_zero, phase)
     )

@@ -147,7 +147,6 @@ class PointSpreadFunction(nn.Module):
         else:
             return amplitude, phase
 
-    @torch.no_grad()
     def _incident_wavefront(self, amplitude, phase, wavelength_set_m, ps_locs_m):
         # Z N L H W
         # Expand dimension to hold point_sources
