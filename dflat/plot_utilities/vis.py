@@ -64,37 +64,6 @@ def gif_from_saved_images(
     return
 
 
-def gif_from_saved_images(
-    filepath, filetag, savename, fps, deleteFrames=True, verbose=False, loop=0
-):
-    print("Call GIF generator")
-    images = []
-    png_files = natsorted(
-        [
-            f
-            for f in os.listdir(filepath)
-            if f.startswith(filetag) and f.endswith(".png")
-        ]
-    )
-    for file in png_files:
-        file_path = os.path.join(filepath, file)
-        images.append(Image.open(file_path))
-        if verbose:
-            print("Write image file as frame: " + file)
-        if deleteFrames:
-            os.remove(file_path)
-
-    duration = int(1000 / fps)
-    images[0].save(
-        filepath + savename,
-        save_all=True,
-        append_images=images[1:],
-        duration=duration,
-        loop=loop,
-    )
-    return
-
-
 def plot_3d_stack(img, rgb, zoom, save_to, show=True, view=[12, 12], crop_dim=None):
     img = np.clip(np.flipud(img), 0, 1)
     rgb = np.clip(np.flipud(rgb), 0, 1)
