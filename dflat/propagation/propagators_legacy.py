@@ -1,3 +1,12 @@
+# This version of the propagators takes wavelength as an input to the forward call instead of the class initialization
+# After some thought, doing this seemed to present no significant advantage for real end-to-end optimization tasks
+# but it did present some downsides for the Fresnel theory. For this reason, this approach is moved as legacy and
+# we tweaked another set of propagation functions to have wavelengths defined on initializaiton as the default.
+
+# One advantage of moving it to initialization is that there is more flexibility to pre-initialize tensors for a little bit more efficiency.
+# We can also now, in advance, evaluate the memory and computational complexity of the fresnel vs asm at initialization time allowing
+# for dynamic selection
+
 import torch
 import numpy as np
 import torch.nn as nn
@@ -24,7 +33,6 @@ class BaseFrequencySpace(nn.Module):
         out_distance_m,
         out_size,
         out_dx_m,
-        wavelength_set_m,
         out_resample_dx_m,
         manual_upsample_factor,
         radial_symmetry,
@@ -32,12 +40,11 @@ class BaseFrequencySpace(nn.Module):
         super().__init__()
         # Quick checks on the inputs
         out_resample_dx_m = out_dx_m if out_resample_dx_m is None else out_resample_dx_m
-        assert isinstance(radial_symmetry, bool), "radial symmetry must be boolean."
-        assert manual_upsample_factor >= 1, "manual_upsample factor must >= 1."
-        assert isinstance(out_distance_m, float), "out_distance_m must be float."
-        assert isinstance(wavelength_set_m, list), "wavelength_set_m must be a list."
+        assert isinstance(radial_symmetry, bool)
+        assert manual_upsample_factor >= 1
+        assert isinstance(out_distance_m, float)
         for obj in [in_size, in_dx_m, out_size, out_dx_m, out_resample_dx_m]:
-            assert len(obj) == 2, "Expected len 2 list for inputs."
+            assert len(obj) == 2
 
         # Move to attributes and convert lists to numpy arrays
         self.in_size = np.array(in_size).astype(int)
@@ -45,7 +52,6 @@ class BaseFrequencySpace(nn.Module):
         self.out_distance_m = out_distance_m
         self.out_size = np.array(out_size).astype(int)
         self.out_dx_m = np.array(out_dx_m)
-        self.wavelength_set_m = np.array(wavelength_set_m)
         self.out_resample_dx_m = np.array(out_resample_dx_m)
         self.manual_upsample_factor = manual_upsample_factor
         self.radial_symmetry = radial_symmetry
@@ -82,7 +88,6 @@ class BaseFrequencySpace(nn.Module):
             "out_distance_m",
             "out_dx_m",
             "out_resample_dx_m",
-            "wavelength_set_m",
         ]
         for key in convert_keys:
             obj = self.__dict__[key]
@@ -96,303 +101,6 @@ class BaseFrequencySpace(nn.Module):
                 raise ValueError("In key conversion, ran into unknown datatype")
 
 
-class FresnelPropagation(BaseFrequencySpace):
-    def __init__(
-        self,
-        in_size,
-        in_dx_m,
-        out_distance_m,
-        out_size,
-        out_dx_m,
-        wavelength_set_m,
-        out_resample_dx_m=None,
-        manual_upsample_factor=1,
-        radial_symmetry=False,
-        verbose=False,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(
-            in_size,
-            in_dx_m,
-            out_distance_m,
-            out_size,
-            out_dx_m,
-            wavelength_set_m,
-            out_resample_dx_m,
-            manual_upsample_factor,
-            radial_symmetry,
-        )
-        self.verbose = verbose
-        self._init_calc_params()
-        self._init_fresnel_constants()
-
-    def _init_calc_params(self):
-        # Determine a manual_upsample_factor as a forced use to avoid field cropping
-        factor = self.out_dx * self.out_size * self.in_dx / self.out_distance
-        upsample_factors = factor[:, None] / self.wavelength_set[None, :]
-        manual_upsample = np.array(
-            [self.manual_upsample_factor, self.manual_upsample_factor]
-        )
-        upsample_factors = np.maximum(upsample_factors, manual_upsample[:, None]).T
-
-        # Compute the input grid and upsampled size when we upsample the input field
-        calc_in_dx = self.in_dx / upsample_factors
-        in_length = self.in_dx * self.in_size
-        calc_samplesM = np.rint(in_length / calc_in_dx)
-        calc_samplesM = np.where(
-            np.mod(calc_samplesM, 2) == 0, calc_samplesM + 1, calc_samplesM
-        )
-
-        self.calc_samplesM = calc_samplesM
-        self.calc_samplesM_r = calc_samplesM[-1] // 2
-        self.manual_upsample_factor = upsample_factors
-
-        # Update the calculation grid corresponding to the upsampled integer number of samples
-        self.calc_in_dx = in_length / calc_samplesM
-
-        # Determine zero-padding required to hit an output target discretization
-        estN = np.ceil(
-            self.wavelength_set[:, None]
-            * self.out_distance
-            / self.out_dx[None, :]
-            / self.calc_in_dx
-        )
-
-        estN = np.where(np.mod(estN, 2) == 0, estN + 1, estN)
-        estN = np.where(estN < self.calc_samplesM, self.calc_samplesM, estN)
-
-        pad_in = (estN - self.calc_samplesM) / 2
-        self.pad_in = pad_in.astype(int)
-
-        # Define the resulting output grid. For all wavelengths, the output value should be very close because of the padding
-        # with error only from rounding. It would be sufficient just to use an average but it wont make much difference
-        # on compute and memory to hold a few extra tensors on the output field
-        self.calc_samplesN = estN
-        exact_calc_out_dx = (
-            self.wavelength_set[:, None] * self.out_distance / self.calc_in_dx / estN
-        )
-        self.calc_out_dx = exact_calc_out_dx
-
-        if self.verbose == True:
-            print("Initializing the Fresnel Method: ")
-            print(f"   - in_size: {self.in_size}, calc_in_size:")
-            for i in range(len(self.wavelength_set)):
-                print(f"      {calc_samplesM[i,:]},")
-
-            print(f"   - padded_calc_in_size: ")
-            for i in range(len(self.wavelength_set)):
-                print(f"      {self.calc_samplesN[i,:]},")
-
-            print(f"   - in_dx: {self.in_dx}, calc_in_dx: ")
-            for i in range(len(self.wavelength_set)):
-                print(f"      {calc_in_dx[i,:]},")
-
-            print(
-                f"   - out_dx: {self.out_dx}, calc_out_dx: {self.calc_out_dx} averaged from:"
-            )
-            for i in range(len(self.wavelength_set)):
-                print(f"      {exact_calc_out_dx[i,:]},")
-
-    def _init_fresnel_constants(self):
-        # Save compute time be pre-initializing tensors for the fresnel calculation
-        self.quad_term_in = []
-        self.ang_fx = []
-        self.x = []
-        self.out_phase = []
-        for i, lam in enumerate(self.wavelength_set):
-            x, y = cart_grid(
-                self.calc_samplesN[i], self.calc_in_dx[i], self.radial_symmetry
-            )
-            self.x.append(x)
-
-            quadratic_term = np.pi / lam / self.out_distance * (x**2 + y**2)
-            self.quad_term_in.append(quadratic_term)
-
-            if self.radial_symmetry:
-                fx = torch.arange(
-                    0,
-                    1 / 2 / self.calc_in_dx[i, -1],
-                    1 / self.calc_in_dx[i, -1] / self.calc_samplesN[i, -1],
-                )
-                self.ang_fx.append(fx)
-
-            xo, yo = cart_grid(
-                self.calc_samplesN[i], self.calc_out_dx[i], self.radial_symmetry
-            )
-            out_phase = (
-                2
-                * np.pi
-                / lam
-                * (self.out_distance + (xo**2 + yo**2) / 2 / self.out_distance)
-            )
-            self.out_phase.append(out_phase)
-
-        return
-
-    def forward(self, amplitude, phase):
-        """Propagates a complex field from an input plane to a planar output plane a distance out_distance_m.
-
-        Args:
-            amplitude (float): Field amplitude of shape (Batch, Lambda, *in_size) or (Batch, Lambda, 1, in_size_r).
-            phase (float): Field phase of shape (Batch, Lambda, *in_size) or (Batch, Lambda, 1, in_size_r).
-        """
-
-        assert amplitude.shape == phase.shape, "amplitude and phase must be same shape."
-        assert (
-            len(self.wavelength_set) == amplitude.shape[-3] or amplitude.shape[-3] == 1
-        ), "Wavelength dimensions don't match"
-        if self.radial_symmetry:
-            assert amplitude.shape[-2] == 1, "Radial flag requires 1D input not 2D."
-            assert amplitude.shape[-1] == self.in_size[-1] // 2 + 1
-        else:
-            assert all(
-                amplitude.shape[-2:] == self.in_size
-            ), f"Input field size does not match init in_size {self.in_size}."
-
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        amplitude = (
-            torch.tensor(amplitude, dtype=torch.float32).to(device)
-            if not torch.is_tensor(amplitude)
-            else amplitude.to(dtype=torch.float32)
-        )
-        phase = (
-            torch.tensor(phase, dtype=torch.float32).to(device)
-            if not torch.is_tensor(phase)
-            else phase.to(dtype=torch.float32)
-        )
-
-        # Upsample and pad the field prior to fourier-based propagation transformation
-        amplitude, phase = self._regularize_field(amplitude, phase)
-
-        # propagate by the fresnel method
-        amplitude, phase = self.fresnel_transform(amplitude, phase)
-
-        # Transform field back to the specified output grid
-        amplitude, phase = self._resample_field(amplitude, phase)
-
-        # Convert to 2D and return to final sensor size
-        for i, (amp, ph) in enumerate(zip(amplitude, phase)):
-            if self.radial_symmetry:
-                amp = radial_2d_transform(amp.squeeze(-2))
-                ph = radial_2d_transform_wrapped_phase(ph.squeeze(-2))
-
-            phase[i] = resize_with_crop_or_pad(ph, *self.out_size, False)
-            amplitude[i] = resize_with_crop_or_pad(amp, *self.out_size, False)
-
-        amplitude = torch.cat(amplitude, axis=-3)
-        phase = torch.cat(phase, axis=-3)
-
-        return amplitude, phase
-
-    def fresnel_transform(self, amplitude, phase):
-        radial_symmetry = self.radial_symmetry
-        dtype = amplitude[0].dtype
-        device = amplitude[0].device
-        torch_zero = torch.tensor(0.0, dtype=dtype, device=device)
-
-        for i, lam in enumerate(self.wavelength_set):
-            in_quad_term = self.quad_term_in[i].to(dtype=dtype, device=device)
-            transform_term = torch.complex(amplitude[i], torch_zero) * torch.exp(
-                torch.complex(torch_zero, phase[i] + in_quad_term)
-            )
-
-            # propagate with qdht or fft2
-            if radial_symmetry:
-                fx = self.ang_fx[i].to(dtype=dtype, device=device)
-                x = torch.squeeze(self.x[i].to(dtype=dtype, device=device))
-                norm = torch.tensor(
-                    1
-                    / np.sqrt(
-                        (
-                            np.prod(self.calc_in_dx[i])
-                            * np.prod(self.calc_out_dx[i])
-                            * np.prod(self.calc_samplesN[i])
-                        )
-                    ),
-                    dtype=dtype,
-                    device=device,
-                )
-                norm = torch.complex(norm, torch_zero)
-                kr, wavefront = qdht(x, transform_term)
-                wavefront = (
-                    general_interp_regular_1d_grid(kr / 2 / np.pi, fx, wavefront) * norm
-                )
-            else:
-                norm = torch.tensor(
-                    np.sqrt(
-                        np.prod(self.calc_in_dx[i])
-                        / np.prod(self.calc_out_dx[i])
-                        / np.prod(self.calc_samplesN[i])
-                    ),
-                    dtype=torch.float32,
-                    device=device,
-                )
-                norm = torch.complex(norm, torch_zero)
-                wavefront = fftshift(fft2(ifftshift(transform_term))) * norm
-
-            # add the complex phase term on the output
-            phase_add = self.out_phase[i].to(dtype=dtype, device=device)
-            amplitude[i] = torch.abs(wavefront)
-            phase[i] = torch.angle(
-                wavefront * torch.exp(torch.complex(torch_zero, phase_add))
-            )
-
-        return amplitude, phase
-
-    def _regularize_field(self, amplitude, phase):
-        # Natural broadcasting of the wavelength dimension cannot be done for Fresnel case
-        if amplitude.shape[-3] == 1:
-            amplitude = amplitude.repeat(1, len(self.wavelength_set), 1, 1)
-            phase = phase.repeat(1, len(self.wavelength_set), 1, 1)
-
-        method = "nearest-exact"
-        samplesM = self.calc_samplesM
-        radial_symmetry = self.radial_symmetry
-
-        ampl_list = []
-        phase_list = []
-        for i, _ in enumerate(self.wavelength_set):
-            # Resample the input field via nearest neighbors interpolation
-            # Nearest matches openCV's implementation but torch recommends using nearest-exact
-            resize_to = (
-                np.array([1, samplesM[i, 1] // 2 + 1])
-                if radial_symmetry
-                else samplesM[i]
-            )
-            resize_to = tuple([int(_) for _ in resize_to])
-            ampl = F.interpolate(amplitude[:, i : i + 1], size=resize_to, mode=method)
-            ph = F.interpolate(phase[:, i : i + 1], size=resize_to, mode=method)
-
-            # Add padding -- this changes the output grid dx so we need to pad per wavelength
-            # Thus what follows will be a jagged tensor (for now a list)
-            padi = self.pad_in[i]
-            paddings = (
-                [0, padi[1], 0, 0, 0, 0, 0, 0]
-                if radial_symmetry
-                else [padi[1], padi[1], padi[0], padi[0], 0, 0, 0, 0]
-            )
-            ampl_list.append(F.pad(ampl, paddings, mode="constant", value=0))
-            phase_list.append(F.pad(ph, paddings, mode="constant", value=0))
-
-        return ampl_list, phase_list
-
-    def _resample_field(self, amplitude, phase):
-        nl = len(amplitude)
-        for i in range(nl):
-            scale = tuple(self.calc_out_dx[i] / self.out_resample_dx)
-            if self.radial_symmetry:
-                scale = (1, scale[-1])
-
-            phase[i] = torch.atan2(
-                F.interpolate(torch.sin(phase[i]), scale_factor=scale, mode="area"),
-                F.interpolate(torch.cos(phase[i]), scale_factor=scale, mode="area"),
-            )
-            amplitude[i] = F.interpolate(amplitude[i], scale_factor=scale, mode="area")
-
-        return amplitude, phase
-
-
 class ASMPropagation(BaseFrequencySpace):
     def __init__(
         self,
@@ -401,12 +109,10 @@ class ASMPropagation(BaseFrequencySpace):
         out_distance_m,
         out_size,
         out_dx_m,
-        wavelength_set_m,
         out_resample_dx_m=None,
         manual_upsample_factor=1,
         radial_symmetry=False,
         FFTPadFactor=1.0,
-        verbose=False,
     ):
         super().__init__(
             in_size,
@@ -414,12 +120,10 @@ class ASMPropagation(BaseFrequencySpace):
             out_distance_m,
             out_size,
             out_dx_m,
-            wavelength_set_m,
             out_resample_dx_m,
             manual_upsample_factor,
             radial_symmetry,
         )
-        self.verbose = verbose
         self._init_calc_params()
         self.FFTPadFactor = FFTPadFactor
 
@@ -465,16 +169,7 @@ class ASMPropagation(BaseFrequencySpace):
         self.calc_samplesN_r = calc_samplesN_r
         self.pad_in = pad_in
 
-        if self.verbose:
-            print("Initializing the Angular Spectrum Method")
-            print(
-                f"   - in_size: {self.in_size}, calc_in_size: {self.calc_samplesM}, padded_calc_in_size: {self.calc_samplesN}"
-            )
-            print(f"   - in_dx: {self.in_dx}, calc_in_dx: {self.calc_in_dx}")
-            print(f"   - out_dx: {self.out_dx}, calc_out_dx: {self.calc_out_dx}")
-            print(f"   - Resampling to grid size: {self.out_resample_dx}")
-
-    def forward(self, amplitude, phase):
+    def forward(self, amplitude, phase, wavelength_set_m):
         """Propagates a complex field from an input plane to a planar output plane a distance out_distance_m.
 
         Args:
@@ -484,7 +179,7 @@ class ASMPropagation(BaseFrequencySpace):
 
         assert amplitude.shape == phase.shape, "amplitude and phase must be same shape."
         assert (
-            len(self.wavelength_set) == amplitude.shape[-3] or amplitude.shape[-3] == 1
+            len(wavelength_set_m) == amplitude.shape[-3] or amplitude.shape[-3] == 1
         ), "Wavelength dimensions don't match"
         if self.radial_symmetry:
             assert amplitude.shape[-2] == 1, "Radial flag requires 1D input not 2D."
@@ -505,12 +200,19 @@ class ASMPropagation(BaseFrequencySpace):
             if not torch.is_tensor(phase)
             else phase.to(dtype=torch.float32)
         )
+        wavelength_set = (
+            torch.tensor(
+                np.array(wavelength_set_m) * self.rescale, dtype=amplitude.dtype
+            ).to(amplitude.device)
+            if not torch.is_tensor(wavelength_set_m)
+            else wavelength_set_m.to(dtype=amplitude.dtype) * self.rescale
+        )
 
         # Upsample and pad the field prior to fft-based propagation transformation
         amplitude, phase = self._regularize_field(amplitude, phase)
 
         # propagate by the asm method
-        amplitude, phase = self.ASM_transform(amplitude, phase)
+        amplitude, phase = self.ASM_transform(amplitude, phase, wavelength_set)
 
         # Transform field back to the specified output grid and convert to 2D
         amplitude, phase = self._resample_field(amplitude, phase)
@@ -524,13 +226,12 @@ class ASMPropagation(BaseFrequencySpace):
 
         return amplitude, phase
 
-    def ASM_transform(self, amplitude, phase):
+    def ASM_transform(self, amplitude, phase, wavelength_set):
         init_shape = amplitude.shape
         dtype = amplitude.dtype
         device = amplitude.device
         torch_zero = torch.tensor([0.0], dtype=dtype).to(device)
         FFTPadFactor = self.FFTPadFactor
-        wavelength_set = torch.tensor(self.wavelength_set, dtype=dtype, device=device)
 
         # Optionally zero pad the input before conducting a fourier transform
         padhalf = [int(n * self.FFTPadFactor) for n in init_shape[-2:]]
@@ -588,6 +289,7 @@ class ASMPropagation(BaseFrequencySpace):
         return torch.abs(outputwavefront), torch.angle(outputwavefront)
 
     def _resample_field(self, amplitude, phase):
+        # Reinterpolate the phase with area averaging and the amplitude with area sum
         scale = tuple(self.calc_out_dx / self.out_resample_dx)
         if self.radial_symmetry:
             scale = (1, scale[-1])
@@ -624,6 +326,295 @@ class ASMPropagation(BaseFrequencySpace):
         return amplitude, phase
 
 
+class FresnelPropagation(BaseFrequencySpace):
+    def __init__(
+        self,
+        in_size,
+        in_dx_m,
+        out_distance_m,
+        out_size,
+        out_dx_m,
+        out_resample_dx_m=None,
+        manual_upsample_factor=1,
+        radial_symmetry=False,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            in_size,
+            in_dx_m,
+            out_distance_m,
+            out_size,
+            out_dx_m,
+            out_resample_dx_m,
+            manual_upsample_factor,
+            radial_symmetry,
+        )
+        self._init_calc_params()
+
+    def forward(self, amplitude, phase, wavelength_set_m):
+        """Propagates a complex field from an input plane to a planar output plane a distance out_distance_m.
+
+        Args:
+            amplitude (float): Field amplitude of shape (Batch, Lambda, *in_size) or (Batch, Lambda, 1, in_size_r).
+            phase (float): Field phase of shape (Batch, Lambda, *in_size) or (Batch, Lambda, 1, in_size_r).
+        """
+
+        assert amplitude.shape == phase.shape, "amplitude and phase must be same shape."
+        assert (
+            len(wavelength_set_m) == amplitude.shape[-3] or amplitude.shape[-3] == 1
+        ), "Wavelength dimensions don't match"
+        if self.radial_symmetry:
+            assert amplitude.shape[-2] == 1, "Radial flag requires 1D input not 2D."
+            assert amplitude.shape[-1] == self.in_size[-1] // 2 + 1
+        else:
+            assert all(
+                amplitude.shape[-2:] == self.in_size
+            ), f"Input field size does not match init in_size {self.in_size}."
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        amplitude = (
+            torch.tensor(amplitude, dtype=torch.float32).to(device)
+            if not torch.is_tensor(amplitude)
+            else amplitude.to(dtype=torch.float32)
+        )
+        phase = (
+            torch.tensor(phase, dtype=torch.float32).to(device)
+            if not torch.is_tensor(phase)
+            else phase.to(dtype=torch.float32)
+        )
+        wavelength_set = (
+            torch.tensor(
+                np.array(wavelength_set_m) * self.rescale, dtype=amplitude.dtype
+            ).to(amplitude.device)
+            if not torch.is_tensor(wavelength_set_m)
+            else wavelength_set_m.to(dtype=amplitude.dtype) * self.rescale
+        )
+
+        # Upsample and pad the field prior to fourier-based propagation transformation
+        amplitude, phase = self._regularize_field(amplitude, phase, wavelength_set)
+
+        # propagate by the fresnel method
+        amplitude, phase = self.fresnel_transform(amplitude, phase, wavelength_set)
+
+        # Transform field back to the specified output grid
+        amplitude, phase = self._resample_field(amplitude, phase)
+
+        # Convert to 2D and return to final sensor size
+        for i, (amp, ph) in enumerate(zip(amplitude, phase)):
+            if self.radial_symmetry:
+                amp = radial_2d_transform(amp.squeeze(-2))
+                ph = radial_2d_transform_wrapped_phase(ph.squeeze(-2))
+
+            phase[i] = resize_with_crop_or_pad(ph, *self.out_size, False)
+            amplitude[i] = resize_with_crop_or_pad(amp, *self.out_size, False)
+
+        amplitude = torch.cat(amplitude, axis=-3)
+        phase = torch.cat(phase, axis=-3)
+
+        return amplitude, phase
+
+    def fresnel_transform(self, amplitude, phase, wavelength_set):
+        radial_symmetry = self.radial_symmetry
+        dtype = amplitude[0].dtype
+        device = amplitude[0].device
+        torch_zero = torch.tensor(0.0, dtype=dtype, device=device)
+
+        for i, lam in enumerate(wavelength_set):
+            # Define grid and compute quadratic term
+            insize = amplitude[i].shape[-2:]
+            x, y = torch.meshgrid(
+                torch.arange(0, insize[-1], dtype=dtype, device=device),
+                torch.arange(0, insize[-2], dtype=dtype, device=device),
+                indexing="xy",
+            )
+            if not radial_symmetry:
+                x = x - (x.shape[-1] // 2)
+                y = y - (y.shape[-2] // 2)
+
+            quadratic_term = (
+                np.pi
+                / lam
+                / self.out_distance
+                * ((x * self.calc_in_dx[-1]) ** 2 + (y * self.calc_in_dx[-2]) ** 2)
+            )
+
+            transform_term = torch.complex(amplitude[i], torch_zero) * torch.exp(
+                torch.complex(torch_zero, phase[i] + quadratic_term)
+            )
+
+            # propagate with qdht or fft2
+            if radial_symmetry:
+                ang_fx = torch.arange(
+                    0,
+                    1 / 2 / self.calc_in_dx[-1],
+                    1 / self.calc_in_dx[-1] / self.calc_samplesN[i, -1],
+                    dtype=dtype,
+                    device=device,
+                )
+                norm = torch.tensor(
+                    1
+                    / np.sqrt(
+                        (
+                            np.prod(self.calc_in_dx)
+                            * np.prod(self.calc_out_dx[i])
+                            * np.prod(self.calc_samplesN[i])
+                        )
+                    ),
+                    dtype=dtype,
+                    device=device,
+                )
+                kr, wavefront = qdht(
+                    torch.squeeze(x * self.calc_in_dx[-1]), transform_term
+                )
+                wavefront = general_interp_regular_1d_grid(
+                    kr / 2 / np.pi, ang_fx, wavefront
+                ) * torch.complex(norm, torch_zero)
+            else:
+                norm = torch.tensor(
+                    np.sqrt(
+                        np.prod(self.calc_in_dx)
+                        / np.prod(self.calc_out_dx[i])
+                        / np.prod(self.calc_samplesN[i])
+                    ),
+                    dtype=torch.float32,
+                    device=device,
+                )
+                wavefront = fftshift(fft2(ifftshift(transform_term))) * torch.complex(
+                    norm, torch_zero
+                )
+
+            # add the complex phase term on the output
+            phase_add = (
+                2
+                * np.pi
+                / lam
+                * (
+                    self.out_distance
+                    + (
+                        (x * self.calc_out_dx[i, -1]) ** 2
+                        + (y * self.calc_out_dx[i, -2]) ** 2
+                    )
+                    / 2
+                    / self.out_distance
+                )
+            )
+
+            amplitude[i] = torch.abs(wavefront)
+            phase[i] = torch.angle(
+                wavefront * torch.exp(torch.complex(torch_zero, phase_add))
+            )
+
+        return amplitude, phase
+
+    def _resample_field(self, amplitude, phase):
+        # Reinterpolate the phase with area averaging and the amplitude with area sum
+        nl = len(amplitude)
+        for i in range(nl):
+            scale = tuple(self.calc_out_dx[i] / self.out_resample_dx)
+            if self.radial_symmetry:
+                scale = (1, scale[-1])
+
+            phase[i] = torch.atan2(
+                F.interpolate(torch.sin(phase[i]), scale_factor=scale, mode="area"),
+                F.interpolate(torch.cos(phase[i]), scale_factor=scale, mode="area"),
+            )
+            amplitude[i] = F.interpolate(amplitude[i], scale_factor=scale, mode="area")
+
+        return amplitude, phase
+
+    def _regularize_field(self, amplitude, phase, wavelength_set):
+        # Natural broadcasting of the wavelength dimension cannot be done for Fresnel case
+        if amplitude.shape[-3] == 1:
+            amplitude = amplitude.repeat(1, len(wavelength_set), 1, 1)
+            phase = phase.repeat(1, len(wavelength_set), 1, 1)
+
+        # Resample the input field via nearest neighbors interpolation
+        # Nearest matches openCV's implementation but torch recommends using nearest-exact
+        # This is defined by the manual upsample factor and in the future, we might want to return to
+        # a different upsample factor for each wavelength channel
+        method = "nearest-exact"
+        samplesM = self.calc_samplesM
+        radial_symmetry = self.radial_symmetry
+
+        resize_to = np.array([1, samplesM[1] // 2 + 1]) if radial_symmetry else samplesM
+        resize_to = tuple([int(_) for _ in resize_to])
+        amplitude = F.interpolate(amplitude, size=resize_to, mode=method)
+        phase = F.interpolate(phase, size=resize_to, mode=method)
+
+        # Add padding -- this changes the output grid dx so we need to pad per wavelength
+        # Thus what follows will be a jagged tensor (for now a list)
+        estN = np.ceil(
+            wavelength_set[:, None].cpu().numpy()
+            * self.out_distance
+            / self.out_dx[None, :]
+            / self.calc_in_dx
+        )
+        estN = np.where(np.mod(estN, 2) == 0, estN + 1, estN)
+        estN = np.where(estN < self.calc_samplesM, self.calc_samplesM, estN)
+        estN = np.where(estN < self.calc_samplesN, self.calc_samplesN, estN)
+
+        pad_in = (estN - self.calc_samplesM) / 2
+        pad_in = pad_in.astype(int)
+
+        # Now redefine the exact output calculation grid
+        self.calc_samplesN = estN
+        self.calc_out_dx = (
+            wavelength_set[:, None].cpu().numpy()
+            * self.out_distance
+            / self.calc_in_dx
+            / estN
+        )
+
+        ampl_list = []
+        phase_list = []
+        for i, _ in enumerate(wavelength_set):
+            padi = pad_in[i]
+            paddings = (
+                [0, padi[1], 0, 0, 0, 0, 0, 0]
+                if radial_symmetry
+                else [padi[1], padi[1], padi[0], padi[0], 0, 0, 0, 0]
+            )
+            ampl_list.append(
+                F.pad(amplitude[:, i : i + 1], paddings, mode="constant", value=0)
+            )
+            phase_list.append(
+                F.pad(phase[:, i : i + 1], paddings, mode="constant", value=0)
+            )
+
+        return ampl_list, phase_list
+
+    def _init_calc_params(self):
+        # Compute the input grid and upsampled size when we upsample the input field
+        in_dx = self.in_dx
+        calc_in_dx = in_dx / self.manual_upsample_factor
+
+        in_length = in_dx * self.in_size
+        calc_samplesM = np.rint(in_length / calc_in_dx)
+        calc_samplesM = np.where(
+            np.mod(calc_samplesM, 2) == 0, calc_samplesM + 1, calc_samplesM
+        )
+        calc_samplesM_r = calc_samplesM[-1] // 2
+        self.calc_samplesM = calc_samplesM
+        self.calc_samplesM_r = calc_samplesM_r
+
+        # Update the calculation grid corresponding to the upsampled integer number of samples
+        self.calc_in_dx = in_length / calc_samplesM
+
+        # The fourier transform implies that the number of samples in the output grid will match the
+        # input grid. To compute on the full output_plane, we should zero pad if needed in input (keep odd)
+        calc_samplesN = np.where(
+            self.out_size > self.in_size, self.out_size, self.in_size
+        )
+        self.calc_samplesN = np.where(
+            np.mod(calc_samplesN, 2) == 0, calc_samplesN + 1, calc_samplesN
+        )
+
+        # For the Fresnel Engine, the output field grid size is tuned by zero-padding the input field
+        # We should then zero-pad more, dependent on wavelength, to get the output pixel size. This will
+        # be computed on the fly in forward call
+
+
 class PointSpreadFunction(nn.Module):
     def __init__(
         self,
@@ -632,28 +623,21 @@ class PointSpreadFunction(nn.Module):
         out_distance_m,
         out_size,
         out_dx_m,
-        wavelength_set_m,
         out_resample_dx_m=None,
         manual_upsample_factor=1,
         radial_symmetry=False,
         diffraction_engine="ASM",
-        verbose=False,
     ):
         super().__init__()
 
         assert isinstance(
             diffraction_engine, str
         ), "diffraction engine must be a string"
-        assert isinstance(
-            wavelength_set_m, list
-        ), "wavelengths must be passed as a list."
-
         diffraction_engine = diffraction_engine.lower()
         assert diffraction_engine in [
             "asm",
             "fresnel",
         ], "Diffraction engine must be either 'asm' or 'fresnel'"
-
         propagator = (
             ASMPropagation if diffraction_engine == "asm" else FresnelPropagation
         )
@@ -663,15 +647,12 @@ class PointSpreadFunction(nn.Module):
             out_distance_m,
             out_size,
             out_dx_m,
-            wavelength_set_m,
             out_resample_dx_m,
             manual_upsample_factor,
             radial_symmetry,
-            verbose=verbose,
         )
 
         self.rescale = 1e6  # Convert m to um
-        self.wavelength_set = torch.tensor(wavelength_set_m) * self.rescale
         self.in_size = in_size
         self.in_dx_m = in_dx_m
         self.out_resample_dx = (
@@ -683,6 +664,7 @@ class PointSpreadFunction(nn.Module):
         self,
         amplitude,
         phase,
+        wavelength_set_m,
         ps_locs_m,
         aperture=None,
         normalize_to_aperture=True,
@@ -690,8 +672,10 @@ class PointSpreadFunction(nn.Module):
         """_summary_
 
         Args:
-            amplitude (tensor): Lens amplitude of shape [... L H W], where L may equal 1 for broadcasting.
-            phase (tensor): Lens phase of shape [... L H W], where L may equal 1 for broadcasting.
+            amplitude (tensor): Lens amplitude of shape [... L H W].
+            phase (tensor): Lens phase of shape [... L H W]
+            wavelength_set_m (list): List of wavelengths corresponding to the L dimension. If L=1 in the passed in profiles,
+                broadcasting will be used to propagate the same field at different wavelengths.
             ps_locs_m (tensor): Array point-source locations of shape [N x 3] where each column corresponds to Y, X, Depth
             aperture (Tensor, optional): Field aperture applied on the lens the same rank as amplitude
                 and with the same H W dimensions. Defaults to None.
@@ -701,13 +685,9 @@ class PointSpreadFunction(nn.Module):
         Returns:
             List: Returns point-spread function intensity and phase of shape [B P Z L H W].
         """
-        assert (
-            amplitude.shape == phase.shape
-        ), "ampl and phase should be the same shape."
-        assert len(amplitude.shape) >= 4, "field profile must be at least rank 4"
-        assert (
-            len(self.wavelength_set) == amplitude.shape[-3] or amplitude.shape[-3] == 1
-        ), "Mismatch in number of simulation wavelengths and wavelength dimension of profile."
+        assert amplitude.shape == phase.shape
+        assert len(amplitude.shape) >= 4
+        assert len(wavelength_set_m) == amplitude.shape[-3] or amplitude.shape[-3] == 1
         ps_locs_m = np.array(ps_locs_m) if not torch.is_tensor(ps_locs_m) else ps_locs_m
         assert len(ps_locs_m.shape) == 2
         assert ps_locs_m.shape[-1] == 3
@@ -744,17 +724,17 @@ class PointSpreadFunction(nn.Module):
         amplitude = amplitude.view(-1, *init_shape[-3:])
         phase = phase.view(-1, *init_shape[-3:])
 
-        # Apply incident wavefront
         N = amplitude.shape[0]
         Z = len(ps_locs_m)
-        amplitude, phase = self._incident_wavefront(amplitude, phase, ps_locs_m)
+        amplitude, phase = self._incident_wavefront(
+            amplitude, phase, wavelength_set_m, ps_locs_m
+        )
         if aperture is not None:
             amplitude = amplitude * aperture
 
-        # Propagate field to sensor
         amplitude = rearrange(amplitude, "Z N L H W -> (N Z) L H W")
         phase = rearrange(phase, "Z N L H W -> (N Z) L H W")
-        amplitude, phase = self.propagator(amplitude, phase)
+        amplitude, phase = self.propagator(amplitude, phase, wavelength_set_m)
         amplitude = rearrange(amplitude, "(N Z) L H W -> N Z L H W", N=N, Z=Z)
         phase = rearrange(phase, "(N Z) L H W -> N Z L H W", N=N, Z=Z)
 
@@ -765,22 +745,32 @@ class PointSpreadFunction(nn.Module):
 
         amplitude = amplitude**2
         normalization = (
-            np.prod(self.out_resample_dx) / self.aperture_energy(aperture)
+            np.prod(self.out_resample_dx)
+            * self.rescale
+            / self.aperture_energy(aperture)
         ).to(dtype=amplitude.dtype, device=amplitude.device)
         if normalize_to_aperture:
             return amplitude * normalization, phase
         else:
             return amplitude, phase
 
-    def _incident_wavefront(self, amplitude, phase, ps_locs_m):
+    def _incident_wavefront(self, amplitude, phase, wavelength_set_m, ps_locs_m):
         # Z N L H W
         # Expand dimension to hold point_sources
         device = amplitude.device
         amplitude = amplitude[None].to(dtype=torch.float64)
         phase = phase[None].to(dtype=torch.float64)
         torch_zero = torch.tensor([0.0], dtype=torch.float64, device=device)
-        wavelength_set = self.wavelength_set.to(dtype=torch.float64, device=device)
 
+        wavelength_set = (
+            torch.tensor(
+                np.array(wavelength_set_m) * self.rescale,
+                dtype=torch.float64,
+                device=device,
+            )
+            if not torch.is_tensor(wavelength_set_m)
+            else wavelength_set_m.to(dtype=torch.float64, device=device) * self.rescale
+        )
         k = 2 * np.pi / wavelength_set
         k = k[None, None, :, None, None]
 
@@ -829,7 +819,7 @@ class PointSpreadFunction(nn.Module):
             fieldblock2d = radial_2d_transform(fieldblock2d.squeeze(-2))
 
         in_energy = torch.sum(
-            fieldblock2d**2 * np.prod(self.in_dx_m),
+            fieldblock2d**2 * np.prod(self.in_dx_m) * self.rescale,
             dim=(-1, -2),
             keepdim=True,
         )[None]
