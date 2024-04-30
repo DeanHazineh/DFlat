@@ -15,7 +15,7 @@ def reverse_lookup_optimize(
     err_thresh=1e-2,
     max_iter=1000,
     opt_phase_only=False,
-    force_cpu=False
+    force_cpu=False,
 ):
     """Given a stack of wavelength dependent amplitude and phase profiles, runs a reverse optimization to identify the nanostructures that
     implements the desired profile across wavelength by minimizing the mean absolute errors of complex fields.
@@ -39,10 +39,10 @@ def reverse_lookup_optimize(
     ), "Wavelength list should match amp,phase wavelength dim (dim3)."
 
     if force_cpu:
-        device='cpu'
+        device = "cpu"
     else:
         device = "cuda" if torch.cuda.is_available() else "cpu"
-    
+
     print(f"Running optimization with device {device}")
     model = load_optical_model(model_name).to(device)
 
@@ -61,11 +61,19 @@ def reverse_lookup_optimize(
     wavelength = model.normalize_wavelength(wavelength)
 
     # optimize
-    optimizer = optim.Adam([z], lr=lr)
+    optimizer = optim.AdamW([z], lr=lr)
     torch_zero = torch.tensor(0.0, dtype=z.dtype, device=device)
 
-    amp = torch.tensor(amp, dtype=torch.float32, device=device) if not torch.is_tensor(amp) else amp.to(dtype=torch.float32, device=device)
-    phase = torch.tensor(phase, dtype=torch.float32, device=device) if not torch.is_tensor(phase) else phase.to(dtype=torch.float32, device=device)
+    amp = (
+        torch.tensor(amp, dtype=torch.float32, device=device)
+        if not torch.is_tensor(amp)
+        else amp.to(dtype=torch.float32, device=device)
+    )
+    phase = (
+        torch.tensor(phase, dtype=torch.float32, device=device)
+        if not torch.is_tensor(phase)
+        else phase.to(dtype=torch.float32, device=device)
+    )
     target_field = torch.complex(amp, torch_zero) * torch.exp(
         torch.complex(torch_zero, phase)
     )
