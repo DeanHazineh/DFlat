@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 from functools import partial
 
-from dflat.propagation import (
+from dflat.propagation.propagators_legacy import (
     PointSpreadFunction,
     ASMPropagation,
     FresnelPropagation,
@@ -22,12 +22,10 @@ def shared_init():
         "out_distance_m": 10e-3,
         "out_size": [200, 200],
         "out_dx_m": [1e-6, 1e-6],
-        "wavelength_set_m": [400e-9, 600e-9],
         "out_resample_dx_m": [2e-6, 2e-6],
         "manual_upsample_factor": 1.0,
         "radial_symmetry": False,
         "diffraction_engine": "asm",
-        "verbose": True,
     }
 
     get_lens = partial(
@@ -78,6 +76,7 @@ class Test_PointSpreadFunction:
                 device=device
             )
 
+            wavelength_set_m = [400e-9, 600e-9]
             ps_locs_m = [[0, 0, 10e-3], [0, 0, 20e-3]]
             ps_locs_m = torch.tensor(ps_locs_m, dtype=torch.float32).to(device=device)
 
@@ -89,6 +88,7 @@ class Test_PointSpreadFunction:
             fres_int, fres_phase = fresnel(
                 amp,
                 phase,
+                wavelength_set_m,
                 ps_locs_m,
                 aperture,
                 normalize_to_aperture=True,
@@ -99,6 +99,7 @@ class Test_PointSpreadFunction:
             asm_int, asm_phase = asm(
                 amp,
                 phase,
+                wavelength_set_m,
                 ps_locs_m,
                 aperture,
                 normalize_to_aperture=True,
@@ -112,7 +113,7 @@ class Test_PointSpreadFunction:
             assert list(fres_int.shape[-2:]) == self.init_dict["out_size"]
             assert fres_int.shape[0] == amp.shape[0]
             assert fres_int.shape[2] == len(ps_locs_m)
-            assert fres_int.shape[3] == 2  # number of wavelengths in the test
+            assert fres_int.shape[3] == len(wavelength_set_m)
 
             fres_int = reshape_dat(fres_int)
             asm_int = reshape_dat(asm_int)
@@ -120,7 +121,7 @@ class Test_PointSpreadFunction:
             asm_phase = self.rewrap_phase(reshape_dat(asm_phase))
 
             mse_int = np.mean((fres_int - asm_int) ** 2)
-            # mse_phase = np.mean((fres_phase - asm_phase) ** 2)
+            mse_phase = np.mean((fres_phase - asm_phase) ** 2)
             assert mse_int < 1e-8
 
             fig, ax = plt.subplots(4, 4)
