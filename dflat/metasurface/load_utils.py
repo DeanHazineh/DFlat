@@ -16,8 +16,9 @@ req_paths = {
     "Nanocylinders_TiO2_U300H600": "https://www.dropbox.com/scl/fi/sn44f2xzadcrag0jgzdsq/Nanocylinders_TiO2_U300H600.zip?rlkey=5hivknv8cvfy3gzzsyolb8bz5&dl=1",
     "Nanocylinders_TiO2_U350H600": "https://www.dropbox.com/scl/fi/43mf1xidor3mti9dv8bce/Nanocylinders_TiO2_U350H600.zip?rlkey=cyj6xb3reh5iv2rj9l1byxk27&dl=1",
     "Nanoellipse_TiO2_U350H600": "https://www.dropbox.com/scl/fi/6phh6a0kztbccy76vzwjd/Nanoellipse_TiO2_U350H600.zip?rlkey=0hn8cr2kgs3t9134kmrhf1ogx&dl=1",
-    "Nanofins_TiO2_U350H600": "https://www.dropbox.com/scl/fi/co65yfwugkvugi7r8bqaj/Nanofins_TiO2_U350H600.zip?rlkey=8e0pzvzul8xlzl9szf15lbrzx&dl=1"
-    }
+    "Nanofins_TiO2_U350H600": "https://www.dropbox.com/scl/fi/co65yfwugkvugi7r8bqaj/Nanofins_TiO2_U350H600.zip?rlkey=8e0pzvzul8xlzl9szf15lbrzx&dl=1",
+}
+
 
 def model_config_path(model_name):
     dir_path = Path("DFlat/Models/")
@@ -26,18 +27,18 @@ def model_config_path(model_name):
     config_exists = os.path.exists(os.path.join(dir_path, model_name, "config.yaml"))
     if not config_exists:
         print("Downloading the model from online storage.")
-        zip_path = dir_path / "data.zip"  
+        zip_path = dir_path / "data.zip"
         load_url = req_paths[model_name]
 
         with requests.get(load_url, stream=True) as response:
             response.raise_for_status()
-            with open(zip_path, 'wb') as file:
-                for chunk in response.iter_content(chunk_size=8192): 
+            with open(zip_path, "wb") as file:
+                for chunk in response.iter_content(chunk_size=8192):
                     file.write(chunk)
 
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
             zip_ref.extractall(dir_path)
-        
+
         zip_path.unlink()
 
     config_path = os.path.join(dir_path, model_name, "config.yaml")
@@ -46,6 +47,7 @@ def model_config_path(model_name):
         ckpt_path = None
 
     return config_path, ckpt_path
+
 
 def load_optical_model(model_name):
     """Loads a neural optical model.
@@ -59,9 +61,10 @@ def load_optical_model(model_name):
 
     config_path, ckpt_path = model_config_path(model_name)
     config = OmegaConf.load(config_path)
-    
+
     optical_model = instantiate_from_config(config.model, ckpt_path, strict=True)
     return optical_model
+
 
 def instantiate_from_config(config_model, ckpt_path=None, strict=False):
     assert "target" in config_model, "Expected key `target` to instantiate."
@@ -81,6 +84,7 @@ def instantiate_from_config(config_model, ckpt_path=None, strict=False):
         )
 
     return loaded_module
+
 
 def get_obj_from_str(string, reload=False):
     module, cls = string.rsplit(".", 1)
@@ -115,4 +119,3 @@ def load_trainer(config_path):
         **config_trainer.get("params", dict()),
     )
     return trainer
-

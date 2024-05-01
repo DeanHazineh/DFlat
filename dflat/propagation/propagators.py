@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.checkpoint import checkpoint
 from torch.fft import fftshift, ifftshift, fft2, ifft2
 from einops import rearrange
 
@@ -268,7 +269,7 @@ class FresnelPropagation(BaseFrequencySpace):
         amplitude, phase = self._regularize_field(amplitude, phase)
 
         # propagate by the fresnel method
-        amplitude, phase = self.fresnel_transform(amplitude, phase)
+        amplitude, phase = checkpoint(self.fresnel_transform, amplitude, phase)
 
         # Transform field back to the specified output grid
         amplitude, phase = self._resample_field(amplitude, phase)
@@ -517,7 +518,7 @@ class ASMPropagation(BaseFrequencySpace):
         amplitude, phase = self._regularize_field(amplitude, phase)
 
         # propagate by the asm method
-        amplitude, phase = self.ASM_transform(amplitude, phase)
+        amplitude, phase = checkpoint(self.ASM_transform, amplitude, phase)
 
         # Transform field back to the specified output grid and convert to 2D
         amplitude, phase = self._resample_field(amplitude, phase)

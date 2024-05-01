@@ -8,7 +8,7 @@ from .load_utils import get_obj_from_str
 
 
 class NeuralCells(nn.Module):
-    def __init__(self, nn_config, param_bounds, trainable_model=False):
+    def __init__(self, nn_config, param_bounds, use_checkpoint=True, **kwargs):
         """Initializes a neural cell model from a config dictionary.
 
         Args:
@@ -17,11 +17,19 @@ class NeuralCells(nn.Module):
             trainable_model (bool, optional): Flag to set model parameters to trainable (requires grad). Defaults to False.
         """
         super().__init__()
+
+        if "trainable_model" in kwargs:
+            print(
+                "Note: trainable_model key in NeuralCells is deprecated. Model will be set to requires_grad."
+            )
         self.dim_in = nn_config.params.dim_in
         self.dim_out = nn_config.params.dim_out
-        self.model = self._initialize_model(nn_config, trainable_model)
+        self.model = instantiate_from_config(
+            nn_config, ckpt_path=nn_config["ckpt_path"], strict=False
+        )
         self.param_bounds = param_bounds
         self.loss = get_obj_from_str(nn_config.loss)()
+        self.use_checkpoint = use_checkpoint
 
     def training_step(self, x, y):
         pred = self.model(x)
@@ -112,18 +120,6 @@ class NeuralCells(nn.Module):
             else np.stack(out, axis=-1)
         )
         return out
-
-    def _initialize_model(self, config, trainable_model):
-        model = instantiate_from_config(
-            config, ckpt_path=config["ckpt_path"], strict=False
-        )
-
-        if not trainable_model:
-            model = model.eval()
-            for param in model.parameters():
-                param.requires_grad = False
-
-        return model
 
 
 class NeuralFields(nn.Module):

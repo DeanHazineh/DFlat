@@ -45,7 +45,6 @@ def reverse_lookup_optimize(
 
     print(f"Running optimization with device {device}")
     model = load_optical_model(model_name).to(device)
-
     pg = model.dim_out // 3
     assert pg == P, f"Polarization dimension of amp, phase (dim1) expected to be {pg}."
 
