@@ -45,7 +45,7 @@ Updated on April 11, 2024 | V2 -> V3
 - Documentation is still in development :o 
 - (v3) You can now donwload this package from the PyPi Index!
 - (v3) Datasets and pre-trained models are now downloaded when called insetad of during install. Models are now initialized by their name instead of by paths to config files.
-- (v3) Memory problems? Gradient checkpointing is added throughout reducing memory when using DFLat at the cost of slightly slow runtimes. 
+- (v3) Memory problems? Gradient checkpointing is added throughout reducing memory when using DFLat at the cost of slightly slower runtimes. 
 - (v2) This repository is the home for the new and maintained version of DFlat. It replaces DFlat-Tensorflow.
 - (v2) Note that this package is no longer a direct port of pytorch-tensorflow but is a complete rewrite (re-)released in February 2024. I recommend switching!
 - (v2) The structure of the software is completely revamped and the algorithms used throughout are not the same as before. The original pytorch version (now deprecated) is archived and kept as a branch.
