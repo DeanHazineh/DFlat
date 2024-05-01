@@ -35,7 +35,9 @@ class BaseFrequencySpace(nn.Module):
         assert isinstance(radial_symmetry, bool), "radial symmetry must be boolean."
         assert manual_upsample_factor >= 1, "manual_upsample factor must >= 1."
         assert isinstance(out_distance_m, float), "out_distance_m must be float."
-        assert isinstance(wavelength_set_m, list), "wavelength_set_m must be a list."
+        assert isinstance(
+            wavelength_set_m, (list, np.ndarray)
+        ), "wavelength_set_m must be a list or numpy array."
         for obj in [in_size, in_dx_m, out_size, out_dx_m, out_resample_dx_m]:
             assert len(obj) == 2, "Expected len 2 list for inputs."
 
@@ -165,14 +167,11 @@ class FresnelPropagation(BaseFrequencySpace):
         pad_in = (estN - self.calc_samplesM) / 2
         self.pad_in = pad_in.astype(int)
 
-        # Define the resulting output grid. For all wavelengths, the output value should be very close because of the padding
-        # with error only from rounding. It would be sufficient just to use an average but it wont make much difference
-        # on compute and memory to hold a few extra tensors on the output field
+        # Define the resulting output grid. For all wavelengths, the output value should be very close or much smaller
         self.calc_samplesN = estN
-        exact_calc_out_dx = (
+        self.calc_out_dx = (
             self.wavelength_set[:, None] * self.out_distance / self.calc_in_dx / estN
         )
-        self.calc_out_dx = exact_calc_out_dx
 
         if self.verbose == True:
             print("Initializing the Fresnel Method: ")
@@ -188,11 +187,9 @@ class FresnelPropagation(BaseFrequencySpace):
             for i in range(len(self.wavelength_set)):
                 print(f"      {calc_in_dx[i,:]},")
 
-            print(
-                f"   - out_dx: {self.out_dx}, calc_out_dx: {self.calc_out_dx} averaged from:"
-            )
+            print(f"   - out_dx: {self.out_dx}, calc_out_dx: ")
             for i in range(len(self.wavelength_set)):
-                print(f"      {exact_calc_out_dx[i,:]},")
+                print(f"      {self.calc_out_dx[i,:]},")
 
     def _init_fresnel_constants(self):
         # Save compute time be pre-initializing tensors for the fresnel calculation
@@ -655,7 +652,7 @@ class PointSpreadFunction(nn.Module):
             diffraction_engine, str
         ), "diffraction engine must be a string"
         assert isinstance(
-            wavelength_set_m, list
+            wavelength_set_m, (list, np.ndarray)
         ), "wavelengths must be passed as a list."
 
         diffraction_engine = diffraction_engine.lower()
