@@ -1,11 +1,11 @@
 # This version of the propagators takes wavelength as an input to the forward call instead of the class initialization
 # After some thought, doing this seemed to present no significant advantage for real end-to-end optimization tasks
-# but it did present some downsides for the Fresnel theory. For this reason, this approach is moved as legacy and
+# but it did present some downsides for the Fresnel theory. For this reason, that approach is moved as legacy and
 # we tweaked another set of propagation functions to have wavelengths defined on initializaiton as the default.
 
 # One advantage of moving it to initialization is that there is more flexibility to pre-initialize tensors for a little bit more efficiency.
 # We can also now, in advance, evaluate the memory and computational complexity of the fresnel vs asm at initialization time allowing
-# for dynamic selection
+# for dynamic selection because the choice is of one over the other is extremely problem dependent
 
 import torch
 import numpy as np

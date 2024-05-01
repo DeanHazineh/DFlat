@@ -230,13 +230,18 @@ class FresnelPropagation(BaseFrequencySpace):
 
         return
 
-    def forward(self, amplitude, phase):
+    def forward(self, amplitude, phase, **kwargs):
         """Propagates a complex field from an input plane to a planar output plane a distance out_distance_m.
 
         Args:
             amplitude (float): Field amplitude of shape (Batch, Lambda, *in_size) or (Batch, Lambda, 1, in_size_r).
             phase (float): Field phase of shape (Batch, Lambda, *in_size) or (Batch, Lambda, 1, in_size_r).
         """
+        if "wavelength_set_m" in kwargs:
+            raise ValueError(
+                "The 'wavelength_set_m' is not expected in this model. "
+                "Please use the propagator from dflat.propagation.propagators_legacy class that accepts wavelength as a forward input."
+            )
 
         assert amplitude.shape == phase.shape, "amplitude and phase must be same shape."
         assert (
@@ -474,13 +479,18 @@ class ASMPropagation(BaseFrequencySpace):
             print(f"   - out_dx: {self.out_dx}, calc_out_dx: {self.calc_out_dx}")
             print(f"   - Resampling to grid size: {self.out_resample_dx}")
 
-    def forward(self, amplitude, phase):
+    def forward(self, amplitude, phase, **kwargs):
         """Propagates a complex field from an input plane to a planar output plane a distance out_distance_m.
 
         Args:
             amplitude (float): Field amplitude of shape (Batch, Lambda, *in_size) or (Batch, Lambda, 1, in_size_r).
             phase (float): Field phase of shape (Batch, Lambda, *in_size) or (Batch, Lambda, 1, in_size_r).
         """
+        if "wavelength_set_m" in kwargs:
+            raise ValueError(
+                "The 'wavelength_set_m' is not expected in this model. "
+                "Please use the propagator from dflat.propagation.propagators_legacy class that accepts wavelength as a forward input."
+            )
 
         assert amplitude.shape == phase.shape, "amplitude and phase must be same shape."
         assert (
@@ -686,6 +696,7 @@ class PointSpreadFunction(nn.Module):
         ps_locs_m,
         aperture=None,
         normalize_to_aperture=True,
+        **kwargs,
     ):
         """_summary_
 
@@ -701,6 +712,11 @@ class PointSpreadFunction(nn.Module):
         Returns:
             List: Returns point-spread function intensity and phase of shape [B P Z L H W].
         """
+        if "wavelength_set_m" in kwargs:
+            raise ValueError(
+                "The 'wavelength_set_m' is not expected in this model. "
+                "Please use the propagator from dflat.propagation.propagators_legacy class that accepts wavelength as a forward input."
+            )
         assert (
             amplitude.shape == phase.shape
         ), "ampl and phase should be the same shape."
