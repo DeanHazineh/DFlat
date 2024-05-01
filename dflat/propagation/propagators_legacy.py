@@ -213,9 +213,7 @@ class ASMPropagation(BaseFrequencySpace):
         amplitude, phase = self._regularize_field(amplitude, phase)
 
         # propagate by the asm method
-        amplitude, phase = checkpoint(
-            self.ASM_transform, amplitude, phase, wavelength_set
-        )
+        amplitude, phase = self.ASM_transform(amplitude, phase, wavelength_set)
 
         # Transform field back to the specified output grid and convert to 2D
         amplitude, phase = self._resample_field(amplitude, phase)
@@ -398,9 +396,7 @@ class FresnelPropagation(BaseFrequencySpace):
         amplitude, phase = self._regularize_field(amplitude, phase, wavelength_set)
 
         # propagate by the fresnel method
-        amplitude, phase = checkpoint(
-            self.fresnel_transform, amplitude, phase, wavelength_set
-        )
+        amplitude, phase = self.fresnel_transform(amplitude, phase, wavelength_set)
 
         # Transform field back to the specified output grid
         amplitude, phase = self._resample_field(amplitude, phase)

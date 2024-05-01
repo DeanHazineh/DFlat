@@ -226,9 +226,16 @@ class FresnelPropagation(BaseFrequencySpace):
             )
             self.out_phase.append(out_phase)
 
+        self.calc_in_dx = torch.tensor(self.calc_in_dx)
+        self.calc_out_dx = torch.tensor(self.calc_out_dx)
+        self.calc_samplesN = torch.tensor(self.calc_samplesN)
+        self.torch_zero = torch.tensor(0.0)
         return
 
     def forward(self, amplitude, phase, **kwargs):
+        return checkpoint(self._forward, amplitude, phase, **kwargs)
+
+    def _forward(self, amplitude, phase, **kwargs):
         """Propagates a complex field from an input plane to a planar output plane a distance out_distance_m.
 
         Args:
@@ -269,7 +276,7 @@ class FresnelPropagation(BaseFrequencySpace):
         amplitude, phase = self._regularize_field(amplitude, phase)
 
         # propagate by the fresnel method
-        amplitude, phase = checkpoint(self.fresnel_transform, amplitude, phase)
+        amplitude, phase = self.fresnel_transform(amplitude, phase)
 
         # Transform field back to the specified output grid
         amplitude, phase = self._resample_field(amplitude, phase)
@@ -292,7 +299,7 @@ class FresnelPropagation(BaseFrequencySpace):
         radial_symmetry = self.radial_symmetry
         dtype = amplitude[0].dtype
         device = amplitude[0].device
-        torch_zero = torch.tensor(0.0, dtype=dtype, device=device)
+        torch_zero = self.torch_zero.to(dtype=dtype, device=device)
 
         for i, lam in enumerate(self.wavelength_set):
             in_quad_term = self.quad_term_in[i].to(dtype=dtype, device=device)
@@ -300,37 +307,25 @@ class FresnelPropagation(BaseFrequencySpace):
                 torch.complex(torch_zero, phase[i] + in_quad_term)
             )
 
-            # propagate with qdht or fft2
             if radial_symmetry:
                 fx = self.ang_fx[i].to(dtype=dtype, device=device)
                 x = torch.squeeze(self.x[i].to(dtype=dtype, device=device))
-                norm = torch.tensor(
-                    1
-                    / np.sqrt(
-                        (
-                            np.prod(self.calc_in_dx[i])
-                            * np.prod(self.calc_out_dx[i])
-                            * np.prod(self.calc_samplesN[i])
-                        )
-                    ),
-                    dtype=dtype,
-                    device=device,
-                )
+                norm = 1.0 / torch.sqrt(
+                    torch.prod(self.calc_in_dx[i])
+                    * torch.prod(self.calc_out_dx[i])
+                    * torch.prod(self.calc_samplesN[i])
+                ).to(dtype=dtype, device=device)
                 norm = torch.complex(norm, torch_zero)
                 kr, wavefront = qdht(x, transform_term)
                 wavefront = (
                     general_interp_regular_1d_grid(kr / 2 / np.pi, fx, wavefront) * norm
                 )
             else:
-                norm = torch.tensor(
-                    np.sqrt(
-                        np.prod(self.calc_in_dx[i])
-                        / np.prod(self.calc_out_dx[i])
-                        / np.prod(self.calc_samplesN[i])
-                    ),
-                    dtype=torch.float32,
-                    device=device,
-                )
+                norm = torch.sqrt(
+                    torch.prod(self.calc_in_dx[i])
+                    / torch.prod(self.calc_out_dx[i])
+                    / torch.prod(self.calc_samplesN[i])
+                ).to(dtype=dtype, device=device)
                 norm = torch.complex(norm, torch_zero)
                 wavefront = fftshift(fft2(ifftshift(transform_term))) * norm
 
@@ -478,6 +473,9 @@ class ASMPropagation(BaseFrequencySpace):
             print(f"   - Resampling to grid size: {self.out_resample_dx}")
 
     def forward(self, amplitude, phase, **kwargs):
+        return checkpoint(self._forward, amplitude, phase, **kwargs)
+
+    def _forward(self, amplitude, phase, **kwargs):
         """Propagates a complex field from an input plane to a planar output plane a distance out_distance_m.
 
         Args:
@@ -518,7 +516,7 @@ class ASMPropagation(BaseFrequencySpace):
         amplitude, phase = self._regularize_field(amplitude, phase)
 
         # propagate by the asm method
-        amplitude, phase = checkpoint(self.ASM_transform, amplitude, phase)
+        amplitude, phase = self.ASM_transform(amplitude, phase)
 
         # Transform field back to the specified output grid and convert to 2D
         amplitude, phase = self._resample_field(amplitude, phase)

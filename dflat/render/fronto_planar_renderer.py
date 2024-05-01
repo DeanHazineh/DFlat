@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from einops import rearrange
+from torch.utils.checkpoint import checkpoint
 
 from .fft_convolve import general_convolve
 from dflat.radial_tranforms import resize_with_crop_or_pad
@@ -12,7 +13,16 @@ class Fronto_Planar_Renderer_Incoherent(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(
+    def forward(self, psf_intensity, scene_radiance, rfft=True, crop_to_psf_dim=False):
+        return checkpoint(
+            self._forward,
+            psf_intensity,
+            scene_radiance,
+            rfft,
+            crop_to_psf_dim,
+        )
+
+    def _forward(
         self,
         psf_intensity,
         scene_radiance,
@@ -27,6 +37,7 @@ class Fronto_Planar_Renderer_Incoherent(nn.Module):
         # scene radiance [1 P Z L H W]
 
         assert len(psf_shape) == 6, "PSF should be rank 6 tensor like [B P Z L H W]."
+
         assert (
             len(srad_shape) == 6
         ), "Scene radiance should be passed as a rank 5 tensor like [P Z L H W]"

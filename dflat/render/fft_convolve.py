@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch.utils.checkpoint import checkpoint
 from torch.fft import fftshift, ifftshift, fft2, ifft2, rfft2, irfft2
 from dflat.radial_tranforms import resize_with_crop_or_pad
 
@@ -47,7 +48,8 @@ def general_convolve(image, filter, rfft=False):
     filter_resh = resize_with_crop_or_pad(filter, *image_shape[-2:], radial_flag=False)
 
     ### Run the convolution
-    image = torch.real(fourier_convolve(image, filter_resh, rfft))
+    image = checkpoint(fourier_convolve, image, filter_resh, rfft)
+    image = torch.real(image)
 
     ### Undo odd padding if it was done before FFT
     image = resize_with_crop_or_pad(image, *init_image_shape[-2:], False)
