@@ -198,6 +198,7 @@ class FresnelPropagation(BaseFrequencySpace):
         self.ang_fx = []
         self.x = []
         self.out_phase = []
+        self.norm = []
         for i, lam in enumerate(self.wavelength_set):
             x, y = cart_grid(
                 self.calc_samplesN[i], self.calc_in_dx[i], self.radial_symmetry
@@ -214,6 +215,23 @@ class FresnelPropagation(BaseFrequencySpace):
                     1 / self.calc_in_dx[i, -1] / self.calc_samplesN[i, -1],
                 )
                 self.ang_fx.append(fx)
+                norm = torch.tensor(
+                    1.0
+                    / np.sqrt(
+                        np.prod(self.calc_in_dx[i])
+                        * np.prod(self.calc_out_dx[i])
+                        * np.prod(self.calc_samplesN[i])
+                    )
+                )
+            else:
+                norm = torch.tensor(
+                    np.sqrt(
+                        np.prod(self.calc_in_dx[i])
+                        / np.prod(self.calc_out_dx[i])
+                        / np.prod(self.calc_samplesN[i])
+                    )
+                )
+            self.norm.append(norm)
 
             xo, yo = cart_grid(
                 self.calc_samplesN[i], self.calc_out_dx[i], self.radial_symmetry
@@ -233,9 +251,6 @@ class FresnelPropagation(BaseFrequencySpace):
         return
 
     def forward(self, amplitude, phase, **kwargs):
-        return checkpoint(self._forward, amplitude, phase, **kwargs)
-
-    def _forward(self, amplitude, phase, **kwargs):
         """Propagates a complex field from an input plane to a planar output plane a distance out_distance_m.
 
         Args:
@@ -272,6 +287,9 @@ class FresnelPropagation(BaseFrequencySpace):
             else phase.to(dtype=torch.float32)
         )
 
+        return checkpoint(self._forward, amplitude, phase, **kwargs)
+
+    def _forward(self, amplitude, phase, **kwargs):
         # Upsample and pad the field prior to fourier-based propagation transformation
         amplitude, phase = self._regularize_field(amplitude, phase)
 
@@ -310,22 +328,14 @@ class FresnelPropagation(BaseFrequencySpace):
             if radial_symmetry:
                 fx = self.ang_fx[i].to(dtype=dtype, device=device)
                 x = torch.squeeze(self.x[i].to(dtype=dtype, device=device))
-                norm = 1.0 / torch.sqrt(
-                    torch.prod(self.calc_in_dx[i])
-                    * torch.prod(self.calc_out_dx[i])
-                    * torch.prod(self.calc_samplesN[i])
-                ).to(dtype=dtype, device=device)
+                norm = self.norm[i].to(dtype=dtype, device=device)
                 norm = torch.complex(norm, torch_zero)
                 kr, wavefront = qdht(x, transform_term)
                 wavefront = (
                     general_interp_regular_1d_grid(kr / 2 / np.pi, fx, wavefront) * norm
                 )
             else:
-                norm = torch.sqrt(
-                    torch.prod(self.calc_in_dx[i])
-                    / torch.prod(self.calc_out_dx[i])
-                    / torch.prod(self.calc_samplesN[i])
-                ).to(dtype=dtype, device=device)
+                norm = self.norm[i].to(dtype=dtype, device=device)
                 norm = torch.complex(norm, torch_zero)
                 wavefront = fftshift(fft2(ifftshift(transform_term))) * norm
 
@@ -473,9 +483,6 @@ class ASMPropagation(BaseFrequencySpace):
             print(f"   - Resampling to grid size: {self.out_resample_dx}")
 
     def forward(self, amplitude, phase, **kwargs):
-        return checkpoint(self._forward, amplitude, phase, **kwargs)
-
-    def _forward(self, amplitude, phase, **kwargs):
         """Propagates a complex field from an input plane to a planar output plane a distance out_distance_m.
 
         Args:
@@ -512,6 +519,9 @@ class ASMPropagation(BaseFrequencySpace):
             else phase.to(dtype=torch.float32)
         )
 
+        return checkpoint(self._forward, amplitude, phase, **kwargs)
+
+    def _forward(self, amplitude, phase, **kwargs):
         # Upsample and pad the field prior to fft-based propagation transformation
         amplitude, phase = self._regularize_field(amplitude, phase)
 

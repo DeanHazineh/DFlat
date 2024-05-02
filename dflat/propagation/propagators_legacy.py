@@ -209,6 +209,9 @@ class ASMPropagation(BaseFrequencySpace):
             else wavelength_set_m.to(dtype=amplitude.dtype) * self.rescale
         )
 
+        return checkpoint(self._forward, amplitude, phase, wavelength_set)
+
+    def _forward(self, amplitude, phase, wavelength_set):
         # Upsample and pad the field prior to fft-based propagation transformation
         amplitude, phase = self._regularize_field(amplitude, phase)
 
@@ -392,6 +395,9 @@ class FresnelPropagation(BaseFrequencySpace):
             else wavelength_set_m.to(dtype=amplitude.dtype) * self.rescale
         )
 
+        return checkpoint(self._forward, amplitude, phase, wavelength_set)
+
+    def _forward(self, amplitude, phase, wavelength_set):
         # Upsample and pad the field prior to fourier-based propagation transformation
         amplitude, phase = self._regularize_field(amplitude, phase, wavelength_set)
 

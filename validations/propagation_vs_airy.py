@@ -111,7 +111,7 @@ def compare_airy_2D():
     ax[2, 0].set_ylabel("Fresnel")
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    savepath = script_dir + "/"
+    savepath = script_dir + "/out/"
     plt.savefig(savepath + "propagation2D_vs_airy.png")
     plt.close()
 

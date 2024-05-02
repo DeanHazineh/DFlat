@@ -136,6 +136,8 @@ class Test_PointSpreadFunction:
             out_dir = os.path.join(script_dir, "out")
             if not os.path.exists(out_dir):
                 os.makedirs(out_dir)
-            plot_path = os.path.join(out_dir, f"psf_radial_{radial_flag}_{device}.png")
+            plot_path = os.path.join(
+                out_dir, f"psf_radial_{radial_flag}_{device}_legacy.png"
+            )
             plt.savefig(plot_path)
             plt.close()

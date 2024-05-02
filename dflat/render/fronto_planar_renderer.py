@@ -14,21 +14,6 @@ class Fronto_Planar_Renderer_Incoherent(nn.Module):
         super().__init__()
 
     def forward(self, psf_intensity, scene_radiance, rfft=True, crop_to_psf_dim=False):
-        return checkpoint(
-            self._forward,
-            psf_intensity,
-            scene_radiance,
-            rfft,
-            crop_to_psf_dim,
-        )
-
-    def _forward(
-        self,
-        psf_intensity,
-        scene_radiance,
-        rfft=True,
-        crop_to_psf_dim=False,
-    ):
         if len(scene_radiance.shape) == 5:
             scene_radiance = scene_radiance[None]
         psf_shape = psf_intensity.shape
@@ -37,7 +22,6 @@ class Fronto_Planar_Renderer_Incoherent(nn.Module):
         # scene radiance [1 P Z L H W]
 
         assert len(psf_shape) == 6, "PSF should be rank 6 tensor like [B P Z L H W]."
-
         assert (
             len(srad_shape) == 6
         ), "Scene radiance should be passed as a rank 5 tensor like [P Z L H W]"
@@ -57,12 +41,17 @@ class Fronto_Planar_Renderer_Incoherent(nn.Module):
             else scene_radiance.to(dtype=torch.float32)
         )
 
+        return checkpoint(
+            self._forward, psf_intensity, scene_radiance, rfft, crop_to_psf_dim
+        )
+
+    def _forward(self, psf_intensity, scene_radiance, rfft, crop_to_psf_dim):
         # Run the spatial convolution
         meas = general_convolve(scene_radiance, psf_intensity, rfft)
         if crop_to_psf_dim:
-            resize_with_crop_or_pad(meas, *psf_shape[-2:], False)
+            resize_with_crop_or_pad(meas, *psf_intensity.shape[-2:], False)
 
-        # Add noise
+        # Add noise or other image stuff here
         ## TO be updated and added later
         return meas
 

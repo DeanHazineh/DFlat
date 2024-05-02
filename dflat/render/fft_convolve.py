@@ -47,7 +47,7 @@ def general_convolve(image, filter, rfft=False):
     image_shape = image.shape
     filter_resh = resize_with_crop_or_pad(filter, *image_shape[-2:], radial_flag=False)
 
-    ### Run the convolution
+    ### Run the convolution (Defualt to using a checkpoint of the fourier transform)
     image = checkpoint(fourier_convolve, image, filter_resh, rfft)
     image = torch.real(image)
 
