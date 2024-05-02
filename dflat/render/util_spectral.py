@@ -44,15 +44,3 @@ def get_illuminant_6500(channels_nm):
     illum_ = interpolate.interp1d(illum[:, 0], illum[:, 1], kind="linear")
 
     return illum_(channels_nm)
-
-
-def gamma_correction(sRGB):
-    gamma_map = sRGB > 0.0031308
-    corrected_high = 1.055 * torch.pow(sRGB, 1.0 / 2.4) - 0.055
-    corrected_low = 12.92 * sRGB
-    sRGB_corrected = torch.where(gamma_map, corrected_high, corrected_low)
-
-    # Clipping values between 0 and 1
-    sRGB_clamped = torch.clamp(sRGB_corrected, 0, 1)
-
-    return sRGB_clamped

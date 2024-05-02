@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from einops import rearrange
 import numpy as np
 from dflat.render.util_sensor import get_QETrans_Basler_Bayer
-from dflat.render.util_spectral import get_rgb_bar_CIE1931, gamma_correction
+from dflat.render.util_spectral import get_rgb_bar_CIE1931
 
 
 def hsi_to_rgb(
@@ -185,3 +185,15 @@ def photons_to_ADU(
         return torch.clip(electrons_signal, min=0)
     else:
         return electrons_signal
+
+
+def gamma_correction(sRGB):
+    gamma_map = sRGB > 0.0031308
+    corrected_high = 1.055 * torch.pow(sRGB, 1.0 / 2.4) - 0.055
+    corrected_low = 12.92 * sRGB
+    sRGB_corrected = torch.where(gamma_map, corrected_high, corrected_low)
+
+    # Clipping values between 0 and 1
+    sRGB_clamped = torch.clamp(sRGB_corrected, 0, 1)
+
+    return sRGB_clamped
