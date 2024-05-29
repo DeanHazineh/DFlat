@@ -118,7 +118,7 @@ def multiplexing_mask_orthrand(num_sets, block_dx, lens_dx, lens_size):
     assert isinstance(num_sets, int), "num_sets must be an integer"
     assert num_sets >= 1, "num_sets should be greater than 1"
     assert all(
-        np.array(lens_dx) < np.array(block_dx)
+        np.array(lens_dx) <= np.array(block_dx)
     ), "block_size_m of the mask cannot have smaller sampling than the lens grid"
     assert (np.mod(block_dx[0] / lens_dx[0], 1) == 0) and (
         np.mod(block_dx[1] / lens_dx[1], 1) == 0
