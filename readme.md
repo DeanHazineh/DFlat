@@ -23,6 +23,7 @@ DFlat provides users with:
 - A validated, auto-differentiable framework for field propagation, point-spread function calculations, and image rendering built on Pytorch.
 - A growing set of pre-trained, efficient neural networks to model the optical response of metasurface cells (alongside the released datasets).
 - A new and simple design architecture for adding your own datasets and training your own models.
+- A autodifferentiable field solver (RCWA) to optimize structures on cells or generate new libraries
 
 By treating optical layers in the same fashion as standard, differentiable neural layers, deep learning pipelines can be built to simultaneously optimize optical hardware and ML computational back-ends for the next generation of computational imaging devices.
 
@@ -41,9 +42,10 @@ pip install -e .
 
 ## Version Notes (v3.0.0)
 
-Updated on April 11, 2024 | V2 -> V3
-- Documentation is still in development :o 
-- (v3) Memory problems? Gradient checkpointing is added throughout reducing memory when using DFlat at the cost of slightly slower runtimes. 
+Updated on July 12, 2024 | V3 -> V4
+- Documentation is still in development :o
+- (v4) An autodifferentiable RCWA field solver class is added. 
+- (v3) Memory problems? Gradient checkpointing is added throughout reducing memory when using DFlat.
 - (v3) You can now donwload this package from the PyPi Index!
 - (v3) Datasets and pre-trained models are now downloaded when called insetad of during install. Models are now initialized by their name instead of by paths to config files.
 - (v2) This repository is the home for the new and maintained version of DFlat. It replaces DFlat-Tensorflow.
