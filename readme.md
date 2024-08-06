@@ -41,8 +41,7 @@ git clone https://github.com/DeanHazineh/DFlat
 pip install -e .
 ```
 
-## Version Notes (v3.0.0)
-
+## Version Notes
 Updated on July 12, 2024 | V3 -> V4
 - Documentation is still in development :o
 - (v4) An autodifferentiable RCWA field solver class is added. 
