@@ -32,6 +32,7 @@ class RCWA_Solver(nn.Module):
         ur2=1.0,
         urd=1.0,
         urs=1.0,
+        rcond=1e-15,
     ):
         """RCWA Solver Modified from the base code of https://github.com/scolburn54/rcwa_tf.
 
@@ -68,6 +69,7 @@ class RCWA_Solver(nn.Module):
         self.__check_material_entry()
         self.__initialize_tensors()
         self.__precompute_constants()
+        self.rcond = rcond
 
         ref_field = self.forward(
             torch.zeros((self.Nlayers, self.Nx, self.Ny)), ref_field=False
@@ -75,14 +77,6 @@ class RCWA_Solver(nn.Module):
         self.ref_field = nn.Parameter(ref_field, requires_grad=False)
 
     def forward(self, binary, ref_field=True):
-        """Compute the complex field transmitted through the cell.
-
-        Args:
-            binary (float): Matrix denoting structures on each layer of shape [NLayers, Nx, Ny]
-            ref_field (bool, optional): Normalize the output field relative to a reference (no structures). Defaults to True.
-        Returns:
-            float: Complex field on the zeroth order wae of shape [2, Lam, PixelsX, PixelsY]
-        """
         # Assemble the cell from the binary
         torch_zero = self.TORCH_ZERO
 
@@ -107,7 +101,7 @@ class RCWA_Solver(nn.Module):
             tt = torch.abs(t) / torch.abs(t_ref)
             tphi = torch.angle(t) - torch.angle(t_ref)
             t = torch.complex(tt, torch_zero) * torch.exp(
-                torch.complex(torch_zero, tphi)
+                -1 * torch.complex(torch_zero, tphi)
             )
 
         return t
@@ -160,31 +154,29 @@ class RCWA_Solver(nn.Module):
         KY = self.KY
 
         # Build the eigenvalue problem.
-        # P_00 = torch.matmul(KX, batch_regularized_inverse(ERC))
-        # P_01 = torch.matmul(KX, batch_regularized_inverse(ERC))
-        # P_10 = torch.matmul(KY, batch_regularized_inverse(ERC))
-        # P_11 = torch.matmul(-KY, batch_regularized_inverse(ERC))
-        P_00 = torch.matmul(KX, torch.pinverse(ERC))
+        bri_erc = thl.inv(ERC)
+        P_00 = torch.matmul(KX, bri_erc)
         P_00 = torch.matmul(P_00, KY)
-        P_01 = torch.matmul(KX, torch.pinverse(ERC))
+        P_01 = torch.matmul(KX, bri_erc)
         P_01 = torch.matmul(P_01, KX)
         P_01 = URC - P_01
-        P_10 = torch.matmul(KY, torch.pinverse(ERC))
+        P_10 = torch.matmul(KY, bri_erc)
         P_10 = torch.matmul(P_10, KY) - URC
-        P_11 = torch.matmul(-KY, torch.pinverse(ERC))
+        P_11 = torch.matmul(-KY, bri_erc)
         P_11 = torch.matmul(P_11, KX)
         P_row0 = torch.cat([P_00, P_01], dim=5)
         P_row1 = torch.cat([P_10, P_11], dim=5)
         P = torch.cat([P_row0, P_row1], dim=4)
 
-        Q_00 = torch.matmul(KX, torch.pinverse(URC))
+        bri_urc = thl.inv(URC)
+        Q_00 = torch.matmul(KX, bri_urc)
         Q_00 = torch.matmul(Q_00, KY)
-        Q_01 = torch.matmul(KX, torch.pinverse(URC))
+        Q_01 = torch.matmul(KX, bri_urc)
         Q_01 = torch.matmul(Q_01, KX)
         Q_01 = ERC - Q_01
-        Q_10 = torch.matmul(KY, torch.pinverse(URC))
+        Q_10 = torch.matmul(KY, bri_urc)
         Q_10 = torch.matmul(Q_10, KY) - ERC
-        Q_11 = torch.matmul(-KY, torch.pinverse(URC))
+        Q_11 = torch.matmul(-KY, bri_urc)
         Q_11 = torch.matmul(Q_11, KX)
         Q_row0 = torch.cat([Q_00, Q_01], dim=5)
         Q_row1 = torch.cat([Q_10, Q_11], dim=5)
@@ -196,27 +188,27 @@ class RCWA_Solver(nn.Module):
         LAM = torch.sqrt(LAM)
         LAM = tensor_utils.diag_batched(LAM)
         V = torch.matmul(Q, W)
-        V = torch.matmul(V, torch.pinverse(LAM))
+        V = torch.matmul(V, thl.inv(LAM))
 
         # Scattering matrices for the layers in each pixel for the whole batch.
         W0 = self.W0
         V0 = self.V0
         k0 = self.k0
         layer_heights = self.layer_heights
-        W_inv = torch.pinverse(W)
-        V_inv = torch.pinverse(V)
+        W_inv = thl.inv(W)
+        V_inv = thl.inv(V)
         A = torch.matmul(W_inv, W0) + torch.matmul(V_inv, V0)
         B = torch.matmul(W_inv, W0) - torch.matmul(V_inv, V0)
         X = torch.matrix_exp(-LAM * k0 * layer_heights)
 
         S = dict({})
-        A_inv = torch.pinverse(A)
+        A_inv = thl.inv(A)
         S11_left = torch.matmul(X, B)
         S11_left = torch.matmul(S11_left, A_inv)
         S11_left = torch.matmul(S11_left, X)
         S11_left = torch.matmul(S11_left, B)
         S11_left = A - S11_left
-        S11_left = torch.pinverse(S11_left)
+        S11_left = thl.inv(S11_left)
         S11_right = torch.matmul(X, B)
         S11_right = torch.matmul(S11_right, A_inv)
         S11_right = torch.matmul(S11_right, X)
@@ -520,6 +512,15 @@ class RCWA_Solver(nn.Module):
         k0 = k0.to(dtype=self.cdtype)
         self.k0 = nn.Parameter(k0, requires_grad=False)
 
+        n1 = torch.sqrt(er1)
+        n2 = torch.sqrt(er2)
+        kinc_x0 = n1 * torch.sin(theta) * torch.cos(phi)
+        kinc_y0 = n1 * torch.sin(theta) * torch.sin(phi)
+        kinc_z0 = n1 * torch.cos(theta)
+        kinc_z0 = kinc_z0[:, :, :, 0, :, :]
+        self.kinc_z0 = nn.Parameter(kinc_z0, requires_grad=False)
+
+        # Build Kx and Ky matrices
         p_max = np.floor(PQ[0] / 2.0)
         q_max = np.floor(PQ[1] / 2.0)
         p = np.linspace(-p_max, p_max, PQ[0])
@@ -532,15 +533,6 @@ class RCWA_Solver(nn.Module):
         q = q[None, None, None, None, None, :]
         q = torch.tile(q, (1, pixelsX, pixelsY, self.Nlayers, 1, 1))
 
-        n1 = torch.sqrt(er1)
-        n2 = torch.sqrt(er2)
-        kinc_x0 = n1 * torch.sin(theta) * torch.cos(phi)
-        kinc_y0 = n1 * torch.sin(theta) * torch.sin(phi)
-        kinc_z0 = n1 * torch.cos(theta)
-        kinc_z0 = kinc_z0[:, :, :, 0, :, :]
-        self.kinc_z0 = nn.Parameter(kinc_z0, requires_grad=False)
-
-        # Build Kx and Ky matrices
         kx_zeros = torch.zeros(PQ[1], dtype=cdtype)
         kx_zeros = kx_zeros[None, None, None, None, None, :]
         ky_zeros = torch.zeros(PQ[0], dtype=cdtype)
@@ -591,7 +583,7 @@ class RCWA_Solver(nn.Module):
         LAM_free_row0 = torch.cat([1j * KZ, Z], dim=5)
         LAM_free_row1 = torch.cat([Z, 1j * KZ], dim=5)
         LAM_free = torch.cat([LAM_free_row0, LAM_free_row1], dim=4)
-        V0 = torch.matmul(Q_free, torch.pinverse(LAM_free))
+        V0 = torch.matmul(Q_free, thl.inv(LAM_free))
         self.V0 = nn.Parameter(V0, requires_grad=False)
 
         ### Step 6: Initialize Global Scattering Matrix ###
@@ -607,6 +599,8 @@ class RCWA_Solver(nn.Module):
         self.SG_S12 = nn.Parameter(SG_S12, requires_grad=False)
         self.SG_S21 = nn.Parameter(SG_S21, requires_grad=False)
         self.SG_S22 = nn.Parameter(SG_S22, requires_grad=False)
+
+        ## Eignemode calcuation in forward
 
         ### Step 8: Reflection side ###
         # Eliminate layer dimension for tensors as they are unchanging on this dimension.
@@ -642,12 +636,12 @@ class RCWA_Solver(nn.Module):
         LAM_ref_row0 = torch.cat([-1j * KZref, Z], dim=4)
         LAM_ref_row1 = torch.cat([Z, -1j * KZref], dim=4)
         LAM_ref = torch.cat([LAM_ref_row0, LAM_ref_row1], dim=3)
-        V_ref = torch.matmul(Q_ref, torch.pinverse(LAM_ref))
+        V_ref = torch.matmul(Q_ref, thl.inv(LAM_ref))
 
-        W0_inv = torch.pinverse(W0)
-        V0_inv = torch.pinverse(V0)
+        W0_inv = thl.inv(W0)
+        V0_inv = thl.inv(V0)
         A_ref = torch.matmul(W0_inv, W_ref) + torch.matmul(V0_inv, V_ref)
-        A_ref_inv = torch.pinverse(A_ref)
+        A_ref_inv = thl.inv(A_ref)
         B_ref = torch.matmul(W0_inv, W_ref) - torch.matmul(V0_inv, V_ref)
 
         SR_S11 = torch.matmul(-A_ref_inv, B_ref)
@@ -679,12 +673,12 @@ class RCWA_Solver(nn.Module):
         LAM_trn_row1 = torch.cat([Z, 1j * KZtrn], dim=4)
         LAM_trn = torch.cat([LAM_trn_row0, LAM_trn_row1], dim=3)
 
-        V_trn = torch.matmul(Q_trn, torch.pinverse(LAM_trn))
+        V_trn = torch.matmul(Q_trn, thl.inv(LAM_trn))
 
-        W0_inv = torch.pinverse(W0)
-        V0_inv = torch.pinverse(V0)
+        W0_inv = thl.inv(W0)
+        V0_inv = thl.inv(V0)
         A_trn = torch.matmul(W0_inv, W_trn) + torch.matmul(V0_inv, V_trn)
-        A_trn_inv = torch.pinverse(A_trn)
+        A_trn_inv = thl.inv(A_trn)
         B_trn = torch.matmul(W0_inv, W_trn) - torch.matmul(V0_inv, V_trn)
 
         ST_S11 = torch.matmul(B_trn, A_trn_inv)
@@ -723,7 +717,7 @@ class RCWA_Solver(nn.Module):
                 n_hat = torch.tensor(n_hat, dtype=dtype)
                 kinc_pol_iter = kinc_pol[pol, :, :, :]
                 kinc_pol_iter = kinc_pol_iter[None, :, :, :]
-                ate_cross = torch.linalg.cross(n_hat, kinc_pol_iter)
+                ate_cross = torch.cross(n_hat, kinc_pol_iter)
                 ate_pol = ate_cross / torch.norm(ate_cross, dim=3, keepdim=True)
 
             if firstPol:
@@ -732,7 +726,7 @@ class RCWA_Solver(nn.Module):
             else:
                 ate = torch.cat([ate, ate_pol], dim=0)
 
-        atm_cross = torch.linalg.cross(kinc_pol, ate)
+        atm_cross = torch.cross(kinc_pol, ate)
         atm = atm_cross / torch.norm(atm_cross, dim=3, keepdim=True)
         ate = ate.to(dtype=cdtype)
         atm = atm.to(dtype=cdtype)
@@ -748,15 +742,15 @@ class RCWA_Solver(nn.Module):
         esrc_y = EP_y * delta
         esrc = torch.cat([esrc_x, esrc_y], dim=3)
         esrc = esrc[:, :, :, :, None]
-        W_ref_inv = torch.pinverse(W_ref)
+        W_ref_inv = thl.inv(W_ref)
 
         ### Step 12: Compute reflected and transmitted fields ###
         csrc = torch.matmul(W_ref_inv, esrc)
         self.csrc = nn.Parameter(csrc, requires_grad=False)
 
         # # # Compute longitudinal components.
-        KZref_inv = torch.pinverse(KZref)
-        KZtrn_inv = torch.pinverse(KZtrn)
+        KZref_inv = thl.inv(KZref)
+        KZtrn_inv = thl.inv(KZtrn)
         self.KZref_inv = nn.Parameter(KZref_inv, requires_grad=False)
         self.KZtrn_inv = nn.Parameter(KZtrn_inv, requires_grad=False)
 

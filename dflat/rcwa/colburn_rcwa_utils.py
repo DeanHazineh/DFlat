@@ -103,23 +103,23 @@ def redheffer_star_product(SA, SB):
     I = torch.tile(I, (batchSize, pixelsX, pixelsY, 1, 1))
 
     # Calculate S11.
-    S11 = thl.pinv(I - thl.matmul(SB["S11"], SA["S22"]))
+    S11 = thl.inv(I - thl.matmul(SB["S11"], SA["S22"]))
     S11 = thl.matmul(S11, SB["S11"])
     S11 = thl.matmul(SA["S12"], S11)
     S11 = SA["S11"] + thl.matmul(S11, SA["S21"])
 
     # Calculate S12.
-    S12 = thl.pinv(I - thl.matmul(SB["S11"], SA["S22"]))
+    S12 = thl.inv(I - thl.matmul(SB["S11"], SA["S22"]))
     S12 = thl.matmul(S12, SB["S12"])
     S12 = thl.matmul(SA["S12"], S12)
 
     # Calculate S21.
-    S21 = thl.pinv(I - thl.matmul(SA["S22"], SB["S11"]))
+    S21 = thl.inv(I - thl.matmul(SA["S22"], SB["S11"]))
     S21 = thl.matmul(S21, SA["S21"])
     S21 = thl.matmul(SB["S21"], S21)
 
     # Calculate S22.
-    S22 = thl.pinv(I - thl.matmul(SA["S22"], SB["S11"]))
+    S22 = thl.inv(I - thl.matmul(SA["S22"], SB["S11"]))
     S22 = thl.matmul(S22, SA["S22"])
     S22 = thl.matmul(SB["S21"], S22)
     S22 = SB["S22"] + thl.matmul(S22, SB["S12"])
@@ -132,36 +132,3 @@ def redheffer_star_product(SA, SB):
     S["S22"] = S22
 
     return S
-
-
-def complex_pseudoinverse(tensor, rcond=1e-15):
-    dtype = tensor.dtype
-    if not torch.is_complex(tensor):
-        return thl.thl.pinv(tensor)
-
-    # Compute SVD
-    s, u, v = thl.svd(tensor, full_matrices=False)
-
-    # Compute the reciprocal of singular values
-    cutoff = rcond * torch.max(s)
-    s_inv = torch.where(s > cutoff, torch.reciprocal(s), 0.0)
-
-    # Cast the reciprocal of singular values to complex
-    s_inv_complex = s_inv.to(dtype=dtype)
-
-    # Compute the pseudoinverse
-    pseudo_inv_s = tensor_utils.diag_batched(s_inv_complex)
-    pseudo_inv = torch.thl.matmul(v, torch.thl.matmul(pseudo_inv_s, torch.adjoint(u)))
-
-    return pseudo_inv
-
-
-def batch_regularized_inverse(matrix, alpha=0.1):
-    if matrix.shape[-1] != matrix.shape[-2]:
-        raise ValueError("The last two dimensions of the input tensor must be square.")
-
-    matrix_shape = matrix.shape[:-2]
-    identity = torch.eye(matrix.shape[-1], dtype=matrix.dtype, device=matrix.device)
-    identity = identity.expand(*matrix_shape, matrix.shape[-2], matrix.shape[-1])
-    regularized_matrix = matrix + alpha * identity
-    return complex_pseudoinverse(regularized_matrix)
