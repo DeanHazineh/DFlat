@@ -4,7 +4,6 @@ import cv2
 
 
 def upsample_block(params, mask, cell_size, block_size):
-    # upsample the params to match the target blocks
     H, W, C = params.shape
     scale_factor = np.array(block_size) / np.array(cell_size)
     Hnew = np.rint(H * scale_factor[0]).astype(int)
@@ -18,10 +17,12 @@ def upsample_block(params, mask, cell_size, block_size):
     params = np.expand_dims(params, -1)
 
     mask = cv2.resize(
-        np.expand_dims(mask, -1),
+        mask.astype(np.float16),
         (Wnew, Hnew),
-        interpolation=cv2.INTER_LINEAR,
+        interpolation=cv2.INTER_NEAREST,  # Use NEAREST for mask to preserve binary nature
     )
+    mask = mask.astype(bool)
+
     return params, mask
 
 

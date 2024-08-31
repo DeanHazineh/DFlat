@@ -1,5 +1,5 @@
 from .assemble import (
-    assemble_nanocylinder_gds,
+    assemble_cylinder_gds,
     assemble_ellipse_gds,
-    asseble_nanofin_gds,
+    assemble_fin_gds,
 )
