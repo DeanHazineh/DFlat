@@ -2,6 +2,8 @@
 **__pycache__**
 **.egg-info**
 **build*
+**docs_build*
+**dist*
 
 **.zip
 **.pickle
