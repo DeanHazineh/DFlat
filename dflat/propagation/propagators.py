@@ -18,6 +18,34 @@ from dflat.radial_tranforms import (
 
 
 class BaseFrequencySpace(nn.Module):
+    """Base class for frequency space propagation methods.
+
+    This class provides common initialization and validation for frequency space
+    propagation methods such as Fresnel and Angular Spectrum Method (ASM).
+
+    Attributes:
+        in_size (np.ndarray): Input field size [height, width].
+        in_dx_m (np.ndarray): Input pixel size in meters [dy, dx].
+        out_distance_m (float): Propagation distance in meters.
+        out_size (np.ndarray): Output field size [height, width].
+        out_dx_m (np.ndarray): Output pixel size in meters [dy, dx].
+        wavelength_set_m (np.ndarray): Set of wavelengths in meters.
+        out_resample_dx_m (np.ndarray): Output resampling pixel size in meters [dy, dx].
+        manual_upsample_factor (float): Manual upsampling factor for input field.
+        radial_symmetry (bool): If True, assume radial symmetry in the input field.
+
+    Args:
+        in_size (List[int]): Input field size [height, width].
+        in_dx_m (List[float]): Input pixel size in meters [dy, dx].
+        out_distance_m (float): Propagation distance in meters.
+        out_size (List[int]): Output field size [height, width].
+        out_dx_m (List[float]): Output pixel size in meters [dy, dx].
+        wavelength_set_m (List[float]): Set of wavelengths in meters.
+        out_resample_dx_m (List[float], optional): Output resampling pixel size in meters [dy, dx].
+        manual_upsample_factor (float, optional): Manual upsampling factor for input field. Defaults to 1.
+        radial_symmetry (bool, optional): If True, assume radial symmetry in the input field. Defaults to False.
+    """
+
     def __init__(
         self,
         in_size,
@@ -100,6 +128,18 @@ class BaseFrequencySpace(nn.Module):
 
 
 class FresnelPropagation(BaseFrequencySpace):
+    """Fresnel propagation method for optical field propagation.
+
+    This class implements the Fresnel propagation method for propagating optical fields
+    from an input plane to an output plane.
+
+    Note:
+        The Fresnel propagation method is suitable for propagation distances where the
+        paraxial approximation holds. To generate fields on a specified, uniform output grid,
+        the input grid is sometimes upsampled and/or zero-padded. The memory/output has a non-linear relationship
+        with requested output grid size.
+    """
+
     def __init__(
         self,
         in_size,
@@ -115,6 +155,20 @@ class FresnelPropagation(BaseFrequencySpace):
         *args,
         **kwargs,
     ):
+        """Initializes the propagation class.
+
+        Args:
+            in_size (list): input grid shape as [H, W].
+            in_dx_m (list): input grid discretization (in meters) as [dy, dx]
+            out_distance_m (float): output plane distance
+            out_size (list): output grid shape as [H, W]
+            out_dx_m (list): output grid discretization (in meters) as [dy, dx]
+            wavelength_set_m (list): List of wavelengths (in meters) corresponding to the wavelength dimension stack in forward.
+            out_resample_dx_m (list, optional): List of output grid discretizations to resample by area sum (area averaging for phase). This can be used to compute at a sub-pixel scale then return the integrated field on each pixel. Defaults to None.
+            manual_upsample_factor (int, optional): Force factor to manually upsample (nearest neighbor) the input lens. This can improve fourier space calculation accuracy. Defaults to 1.
+            radial_symmetry (bool, optional): Flag to use radial symmetry during calculations. Note that we expect radial field profiles to be passed in if True. Defaults to False.
+            verbose (bool, optional): If True, prints information about the actual grid sizes etc that will be used in the back-end calculation. This may often be larger than user defined sizes due to fourier space rules. Defaults to False.
+        """
         super().__init__(
             in_size,
             in_dx_m,
@@ -254,8 +308,11 @@ class FresnelPropagation(BaseFrequencySpace):
         """Propagates a complex field from an input plane to a planar output plane a distance out_distance_m.
 
         Args:
-            amplitude (float): Field amplitude of shape (Batch, Lambda, *in_size) or (Batch, Lambda, 1, in_size_r).
-            phase (float): Field phase of shape (Batch, Lambda, *in_size) or (Batch, Lambda, 1, in_size_r).
+            amplitude (float): Field amplitude of shape (Batch, Lambda, H W) or (Batch, Lambda, 1, R).
+            phase (float): Field phase of shape (Batch, Lambda, H W) or (Batch, Lambda, 1, R).
+
+        Returns:
+            list: amplitude and phase with the same shape.
         """
         if "wavelength_set_m" in kwargs:
             raise ValueError(
@@ -402,6 +459,18 @@ class FresnelPropagation(BaseFrequencySpace):
 
 
 class ASMPropagation(BaseFrequencySpace):
+    """Angular Spectrum Method (ASM) for optical field propagation.
+
+    This class implements the Angular Spectrum Method for propagating optical fields
+    from an input plane to an output plane.
+
+    Note:
+        The ASM is suitable for a wide range of propagation distances and can handle
+        non-paraxial cases more accurately than the Fresnel method. The output grid for ASM methods will always be forced to match the input grid.
+        Consequently, in the back-end, we upsample and pad the input profile to match your target output grid. This affects memory and computation costs
+        in a sometimes non-intuitive way for users.
+    """
+
     def __init__(
         self,
         in_size,
@@ -416,6 +485,22 @@ class ASMPropagation(BaseFrequencySpace):
         FFTPadFactor=1.0,
         verbose=False,
     ):
+        """Initializes the propagation class.
+
+        Args:
+            in_size (list): input grid shape as [H, W].
+            in_dx_m (list): input grid discretization (in meters) as [dy, dx]
+            out_distance_m (float): output plane distance
+            out_size (list): output grid shape as [H, W]
+            out_dx_m (list): output grid discretization (in meters) as [dy, dx]
+            wavelength_set_m (list): List of wavelengths (in meters) corresponding to the wavelength dimension stack in forward.
+            out_resample_dx_m (list, optional): List of output grid discretizations to resample by area sum (area averaging for phase). This can be used to compute at a sub-pixel scale then return the integrated field on each pixel. Defaults to None.
+            manual_upsample_factor (int, optional): Force factor to manually upsample (nearest neighbor) the input lens. This can improve fourier space calculation accuracy. Defaults to 1.
+            FFTPadFactor (float, optional): Force a larger zero-pad factor during FFT used for frequency-space convolution. This is for developer debug/testing.
+            radial_symmetry (bool, optional): Flag to use radial symmetry during calculations. Note that we expect radial field profiles to be passed in if True. Defaults to False.
+            verbose (bool, optional): If True, prints information about the actual grid sizes etc that will be used in the back-end calculation. This may often be larger than user defined sizes due to fourier space rules. Defaults to False.
+        """
+
         super().__init__(
             in_size,
             in_dx_m,
@@ -486,8 +571,11 @@ class ASMPropagation(BaseFrequencySpace):
         """Propagates a complex field from an input plane to a planar output plane a distance out_distance_m.
 
         Args:
-            amplitude (float): Field amplitude of shape (Batch, Lambda, *in_size) or (Batch, Lambda, 1, in_size_r).
-            phase (float): Field phase of shape (Batch, Lambda, *in_size) or (Batch, Lambda, 1, in_size_r).
+            amplitude (float): Field amplitude of shape (Batch, Lambda, H W) or (Batch, Lambda, 1, R).
+            phase (float): Field phase of shape (Batch, Lambda, H W) or (Batch, Lambda, 1, R).
+
+        Returns:
+            list: amplitude and phase on the output grid. Shape of tensors same as passed in.
         """
         if "wavelength_set_m" in kwargs:
             raise ValueError(
@@ -526,7 +614,7 @@ class ASMPropagation(BaseFrequencySpace):
         amplitude, phase = self._regularize_field(amplitude, phase)
 
         # propagate by the asm method
-        amplitude, phase = self.ASM_transform(amplitude, phase)
+        amplitude, phase = self._ASM_transform(amplitude, phase)
 
         # Transform field back to the specified output grid and convert to 2D
         amplitude, phase = self._resample_field(amplitude, phase)
@@ -540,7 +628,7 @@ class ASMPropagation(BaseFrequencySpace):
 
         return amplitude, phase
 
-    def ASM_transform(self, amplitude, phase):
+    def _ASM_transform(self, amplitude, phase):
         init_shape = amplitude.shape
         dtype = amplitude.dtype
         device = amplitude.device
@@ -641,6 +729,14 @@ class ASMPropagation(BaseFrequencySpace):
 
 
 class PointSpreadFunction(nn.Module):
+    """Calculates the Point Spread Function (PSF) for an optical system.
+
+    This class uses either the Angular Spectrum Method (ASM) or Fresnel propagation
+    to calculate the PSF of an optical system for given input fields and point source locations.
+
+    Note: Normalize_to_aperture in the forward argument enables re-normalization of the output PSF relative to the total energy incident at the input plane.
+    """
+
     def __init__(
         self,
         in_size,
@@ -655,6 +751,20 @@ class PointSpreadFunction(nn.Module):
         diffraction_engine="ASM",
         verbose=False,
     ):
+        """Initializes the point-spread function class.
+
+        Args:
+            in_size (list): input grid shape as [H, W].
+            in_dx_m (list): input grid discretization (in meters) as [dy, dx]
+            out_distance_m (float): output plane distance
+            out_size (list): output grid shape as [H, W]
+            out_dx_m (list): output grid discretization (in meters) as [dy, dx]
+            wavelength_set_m (list): List of wavelengths (in meters) corresponding to the wavelength dimension stack in forward.
+            out_resample_dx_m (list, optional): List of output grid discretizations to resample by area sum (area averaging for phase). This can be used to compute at a sub-pixel scale then return the integrated field on each pixel. Defaults to None.
+            manual_upsample_factor (int, optional): Force factor to manually upsample (nearest neighbor) the input lens. This can improve fourier space calculation accuracy. Defaults to 1.
+            radial_symmetry (bool, optional): Flag to use radial symmetry during calculations. Note that we expect radial field profiles to be passed in if True. Defaults to False.
+            verbose (bool, optional): If True, prints information about the actual grid sizes etc that will be used in the back-end calculation. This may often be larger than user defined sizes due to fourier space rules. Defaults to False.
+        """
         super().__init__()
 
         assert isinstance(
@@ -704,11 +814,11 @@ class PointSpreadFunction(nn.Module):
         normalize_to_aperture=True,
         **kwargs,
     ):
-        """_summary_
+        """Computes the pont-spread function for teh amplitude and phase profile given a list of point-source locations.
 
         Args:
-            amplitude (tensor): Lens amplitude of shape [... L H W], where L may equal 1 for broadcasting.
-            phase (tensor): Lens phase of shape [... L H W], where L may equal 1 for broadcasting.
+            amplitude (tensor): Lens amplitude of shape [Batch L H W], where L may equal 1 for broadcasting.
+            phase (tensor): Lens phase of shape [Batch L H W], where L may equal 1 for broadcasting.
             ps_locs_m (tensor): Array point-source locations of shape [N x 3] where each column corresponds to Y, X, Depth
             aperture (Tensor, optional): Field aperture applied on the lens the same rank as amplitude
                 and with the same H W dimensions. Defaults to None.
@@ -716,7 +826,7 @@ class PointSpreadFunction(nn.Module):
                 incident on the optic/aperture. Defaults to True.
 
         Returns:
-            List: Returns point-spread function intensity and phase of shape [B P Z L H W].
+            List: Returns point-spread function intensity and phase of shape [Batch Num_point_sources Lambda H W].
         """
         if "wavelength_set_m" in kwargs:
             raise ValueError(
@@ -787,7 +897,7 @@ class PointSpreadFunction(nn.Module):
 
         amplitude = amplitude**2
         normalization = (
-            np.prod(self.out_resample_dx) / self.aperture_energy(aperture)
+            np.prod(self.out_resample_dx) / self._aperture_energy(aperture)
         ).to(dtype=amplitude.dtype, device=amplitude.device)
         if normalize_to_aperture:
             return amplitude * normalization, phase
@@ -837,7 +947,7 @@ class PointSpreadFunction(nn.Module):
         )
 
     @torch.no_grad()
-    def aperture_energy(self, aperture):
+    def _aperture_energy(self, aperture):
         in_size = self.in_size
         sz = [
             1,
