@@ -34,7 +34,7 @@ class RCWA_Solver(nn.Module):
         urs=1.0,
         rcond=1e-15,
     ):
-        """RCWA Solver Modified from the base code of https://github.com/scolburn54/rcwa_tf.
+        """RCWA Solver Class. Computes output field given layered structures.
 
         Args:
             wavelength_set_m (list): Wavelengths to simulate in batch.
@@ -77,6 +77,15 @@ class RCWA_Solver(nn.Module):
         self.ref_field = nn.Parameter(ref_field, requires_grad=False)
 
     def forward(self, binary, ref_field=True):
+        """Computes a zero-order transmitted field given a binary pattern for each layer.
+
+        Args:
+            binary (float): Binary pattern for each layer of shape [Layer, H, W]. The binary will be multiplied by the initialzed eps_d (epsilon for the structures) and the embedding medium will be the initialized layer_eps.
+            ref_field (bool, optional): If True, returns the output field normalized relative to the incident field. This is required to get accurate results! Defaults to True.
+
+        Returns:
+            complex: Output zero-order complex field transmitted through of shape [Polarization=2 (x,y), Lambda, PixelsX, PixelsY]
+        """
         # Assemble the cell from the binary
         torch_zero = self.TORCH_ZERO
 
@@ -124,7 +133,7 @@ class RCWA_Solver(nn.Module):
         Returns:
             outputs: A `dict` containing the keys {'rx', 'ry', 'rz', 'R', 'ref',
             'tx', 'ty', 'tz', 'T', 'TRN'} corresponding to the computed reflection/tranmission
-            coefficients and powers. tx has shape [lambda, pixelsX, pixelsY, PQ, (?)]
+            coefficients and powers. tx has shape [lambda, pixelsX, pixelsY, PQ, 1]
         """
         # # Get the precompute tensors
         # k0 = self.k0
