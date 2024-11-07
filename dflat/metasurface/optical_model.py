@@ -35,7 +35,7 @@ class NeuralCells(nn.Module):
         pred = self.model(x)
         return self.loss(pred, y)
 
-    def forward(self, params, wavelength, pre_normalized=True):
+    def forward(self, params, wavelength, pre_normalized=True, batch_size=None):
         """Predict the cell optical response from the passed in design parameters and wavelength
 
         Args:
@@ -44,6 +44,7 @@ class NeuralCells(nn.Module):
             pre_normalized (bool, optional): Flag to indicate if the passed in params and wavelength are already normalized
                 to the range [0,1]. If False, the passed in tensors will be automatically normalized based on the config
                 settings.  Defaults to True.
+            batch_size (int, optional): Number of cells to evaluate at once via model batching.
 
         Returns:
             list: Amplitude and Phase of shape [B, pol, Lam, H, W] where pol is 1 or 2.
@@ -62,12 +63,16 @@ class NeuralCells(nn.Module):
         torch_zero = torch.tensor(0.0, dtype=x.dtype).to(device=x.device)
 
         num_ch = x.shape[-1]
+        b, h, w, c = x.shape
         assert num_ch == (
             len(self.param_bounds) - 1
         ), "Channel dimension is inconsistent with loaded model"
         assert len(x.shape) == 4
         assert len(lam.shape) == 1
-        b, h, w, c = x.shape
+        if batch_size is not None:
+            assert isinstance(batch_size, int), "batch size must be an integer"
+        else:
+            batch_size = b * h * w
 
         if not pre_normalized:
             x = self.normalize(x)
@@ -76,7 +81,13 @@ class NeuralCells(nn.Module):
         x = rearrange(x, "b h w c -> (b h w) c")
         out = []
         for li in lam:
-            out.append(self.model(torch.cat((x, li.repeat(x.shape[0], 1)), dim=1)))
+            li_repeated = li.repeat(x.shape[0], 1)  # Repeat `li` once for all rows in x
+            chout = [
+                self.model(torch.cat((x[start:end], li_repeated[start:end]), dim=1))
+                for start in range(0, x.shape[0], batch_size)
+                for end in [min(start + batch_size, x.shape[0])]
+            ]
+            out.append(torch.cat(chout, dim=0))  # Concatenate results for each `li`
         out = torch.stack(out)
 
         g = int(out.shape[-1] / 3)
