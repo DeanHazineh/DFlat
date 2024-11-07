@@ -17,6 +17,7 @@ def reverse_lookup_optimize(
     opt_phase_only=False,
     force_cpu=False,
     batch_size=None,
+    pbounds=[0.0, 1.0],
 ):
     """Given a stack of wavelength dependent amplitude and phase profiles, runs a reverse optimization to identify the nanostructures that
     implements the desired profile across wavelength by minimizing the mean absolute errors of complex fields.
@@ -30,6 +31,7 @@ def reverse_lookup_optimize(
         err_thresh (float, optional): Early termination threshold. Defaults to 0.1.
         max_iter (int, optional): Maximum number of steps. Defaults to 1000.
         batch_size (int, optional): Number of cells to evaluate at once via model batching.
+        pbounds (list, optional): Min and max range [0,1] of the library params
 
     Returns:
         list: Returns normalized and unnormalized metasurface design parameters of shape [B, H, W, D] where D is the number of shape parameters. Last item in list is the MAE loss for each step.
@@ -90,7 +92,10 @@ def reverse_lookup_optimize(
 
         optimizer.zero_grad()
         pred_amp, pred_phase = model(
-            latent_to_param(z), wavelength, pre_normalized=True, batch_size=batch_size
+            latent_to_param(z, pmin=pbounds[0], pmax=pbounds[1]),
+            wavelength,
+            pre_normalized=True,
+            batch_size=batch_size,
         )
 
         if opt_phase_only:
@@ -114,5 +119,7 @@ def reverse_lookup_optimize(
         pbar.set_description(f"Loss: {err:.4f}")
     pbar.close()
 
-    op_param = latent_to_param(z).detach().cpu().numpy()
+    op_param = (
+        latent_to_param(z, pmin=pbounds[0], pmax=pbounds[1]).detach().cpu().numpy()
+    )
     return op_param, model.denormalize(op_param), err_list
