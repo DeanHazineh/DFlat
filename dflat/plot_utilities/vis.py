@@ -3,34 +3,36 @@ from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 from natsort import natsorted
-from moviepy.editor import ImageSequenceClip
+
+# from moviepy.editor import ImageSequenceClip
+# Moviepy should be removed. It has some bugs
 
 
-def video_from_saved_images(
-    filepath, filetag, savename, fps, deleteFrames=True, verbose=False
-):
-    print("Call video generator")
-    png_files = natsorted(
-        [
-            os.path.join(filepath, f)
-            for f in os.listdir(filepath)
-            if f.startswith(filetag) and f.endswith(".png")
-        ]
-    )
-    if verbose:
-        for file in png_files:
-            print("Adding image file as frame: " + file)
+# def video_from_saved_images(
+#     filepath, filetag, savename, fps, deleteFrames=True, verbose=False
+# ):
+#     print("Call video generator")
+#     png_files = natsorted(
+#         [
+#             os.path.join(filepath, f)
+#             for f in os.listdir(filepath)
+#             if f.startswith(filetag) and f.endswith(".png")
+#         ]
+#     )
+#     if verbose:
+#         for file in png_files:
+#             print("Adding image file as frame: " + file)
 
-    clip = ImageSequenceClip(png_files, fps=fps)
-    clip.write_videofile(
-        os.path.join(filepath, savename) + ".mp4", codec="libx264", fps=fps
-    )
+#     clip = ImageSequenceClip(png_files, fps=fps)
+#     clip.write_videofile(
+#         os.path.join(filepath, savename) + ".mp4", codec="libx264", fps=fps
+#     )
 
-    if deleteFrames:
-        for file in png_files:
-            os.remove(file)
+#     if deleteFrames:
+#         for file in png_files:
+#             os.remove(file)
 
-    return
+#     return
 
 
 def gif_from_saved_images(
