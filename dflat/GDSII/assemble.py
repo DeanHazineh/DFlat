@@ -213,7 +213,9 @@ def assemble_standard_shapes(
             if cell_fun == gdspy.Round:
                 if len(shape_params) == 1:
                     shape_params = [shape_params[0], shape_params[0]]
-                shape = cell_fun((xoffset, yoffset), shape_params)
+                shape = cell_fun(
+                    (xoffset, yoffset), shape_params, number_of_points=number_of_points
+                )
             elif cell_fun == gdspy.Rectangle:
                 shape_params += [xoffset, yoffset]
                 shape = cell_fun((xoffset, yoffset), shape_params)
@@ -221,17 +223,17 @@ def assemble_standard_shapes(
                 raise ValueError
             cell.add(shape)
 
-    # Add lens markers
-    hx = cell_size[1] * pshape[1] / gds_unit
-    hy = cell_size[0] * pshape[0] / gds_unit
-    ms = marker_size / gds_unit
-    cell_annot = lib.new_cell(f"TEXT_{unique_id}")
-    add_marker_tag(cell_annot, ms, hx, hy)
+    # # Add lens markers
+    # hx = cell_size[1] * pshape[1] / gds_unit
+    # hy = cell_size[0] * pshape[0] / gds_unit
+    # ms = marker_size / gds_unit
+    # cell_annot = lib.new_cell(f"TEXT_{unique_id}")
+    # add_marker_tag(cell_annot, ms, hx, hy)
 
-    # Create top-level cell and add references
+    # # Create top-level cell and add references
     top_cell = lib.new_cell(f"TOP_CELL_{unique_id}")
     top_cell.add(gdspy.CellReference(cell))
-    top_cell.add(gdspy.CellReference(cell_annot))
+    # top_cell.add(gdspy.CellReference(cell_annot))
 
     # Write GDS file
     lib.write_gds(savepath)

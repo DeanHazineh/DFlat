@@ -45,9 +45,7 @@ def test_fronto_planar_renderer_rgb_conversion(
         psf_intensity, scene_radiance, rfft=True, crop_to_psf_dim=False
     )
 
-    rgb_output = renderer.rgb_measurement(
-        meas, wavelength_set_m, bayer_mosaic=True, gamma=True
-    )
+    rgb_output = renderer.rgb_measurement(meas, wavelength_set_m)
 
     expected_shape = meas.shape[:-3] + (3, meas.shape[-2], meas.shape[-1])
     assert (

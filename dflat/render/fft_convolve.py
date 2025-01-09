@@ -6,9 +6,7 @@ from torch.fft import fftshift, ifftshift, fft2, ifft2, rfft2, irfft2
 from dflat.radial_tranforms import resize_with_crop_or_pad
 
 
-
-
-def general_convolve(image, filter, rfft=False, mode="valid"):
+def general_convolve(image, filter, rfft=False, mode="valid", adjoint=False):
     """Runs the Fourier space convolution between an image and filter, where the filter kernels may have a different size from the image shape.
 
     Args:
@@ -40,7 +38,7 @@ def general_convolve(image, filter, rfft=False, mode="valid"):
     filter_resh = resize_with_crop_or_pad(filter, *image_shape[-2:], radial_flag=False)
 
     ### Run the convolution (Defualt to using a checkpoint of the fourier transform)
-    image = checkpoint(fourier_convolve, image, filter_resh, rfft)
+    image = checkpoint(fourier_convolve, image, filter_resh, rfft, adjoint)
     image = torch.real(image)
 
     if mode == "valid":
@@ -90,27 +88,31 @@ def weiner_deconvolve(image, filter, const=1e-4, abs=False):
     return image
 
 
-def fourier_convolve(image, filter, rfft=False):
+def fourier_convolve(image, filter, rfft=False, adjoint=False):
     """Computes the convolution of two signals (real or complex) using frequency space multiplcation. Convolution is done over the two inner-most dimensions.
 
     Args:
         `image` (float or complex): Image to apply filter to, of shape [..., Ny, Nx]
         `filter` (float or complex): Filter kernel; The kernel must be the same shape as the image
+        `adjoint' (bool, optional): _description_. Defaults to False.
 
     Returns:
         complex: Image with filter convolved, same shape as input
     """
+
     # Ensure inputs are complex
     TORCH_ZERO = torch.tensor(0.0).to(dtype=image.dtype, device=image.device)
     if rfft:
-        fourier_product = rfft2(ifftshift(image)) * rfft2(ifftshift(filter))
+        kf = rfft2(ifftshift(filter))
+        kf = torch.conj(kf) if adjoint else kf
+        fourier_product = rfft2(ifftshift(image)) * kf
         fourier_product = fftshift(irfft2(fourier_product))
     else:
         image = torch.complex(image, TORCH_ZERO) if not image.is_complex() else image
-        filter = (
-            torch.complex(filter, TORCH_ZERO) if not filter.is_complex() else filter
-        )
-        fourier_product = fft2(ifftshift(image)) * fft2(ifftshift(filter))
+        kf = torch.complex(filter, TORCH_ZERO) if not filter.is_complex() else filter
+        kf = fft2(ifftshift(filter))
+        kf = torch.conj(kf) if adjoint else kf
+        fourier_product = fft2(ifftshift(image)) * kf
         fourier_product = fftshift(ifft2(fourier_product))
 
     return fourier_product

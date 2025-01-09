@@ -2,6 +2,8 @@ import torch
 import torch.nn.functional as F
 from einops import rearrange
 import numpy as np
+import warnings
+
 from dflat.render.util_sensor import get_QETrans_Basler_Bayer
 from dflat.render.util_spectral import get_rgb_bar_CIE1931, gamma_correction
 
@@ -9,11 +11,12 @@ from dflat.render.util_spectral import get_rgb_bar_CIE1931, gamma_correction
 def hsi_to_rgb(
     hsi,
     wavelength_set_m,
-    demosaic=False,
     gamma=False,
     tensor_ordering=False,
     normalize=True,
     projection="Basler_Bayer",
+    process="ideal",
+    **kwargs
 ):
     """Converts a batched hyperspectral datacube of shape [minibatch, Height, Width, Channels] to RGB. If tensor_ordering is true,
     input may instead be passed with the more common tensor shape [B, Ch, H, W]. The CIE1931 color matching functions are used by default.
@@ -21,25 +24,40 @@ def hsi_to_rgb(
     Args:
         hsi (float): Hyperspectral cube with shsape [B, H, W, Ch] or [B, Ch, H, W] if tensor_ordering is True.
         wavelength_set_m (float): List of wavelengths corresponding to the input channel dimension.
-        demosaic (bool, optional): If True, a Bayer filter mask is applied to the RGB images and then interpolation is used to match experiment. Defaults to True.
         gamma (bool, optional): Applies gamma transformation to the input images. Defaults to True.
         tensor_ordering (bool, optional): If True, allows passing in a HSI with the more covenient pytorch to_tensor form. Defaults to False.
         normalize (bool, optional): If true, the returned projection is max normalized to 1.
         projection (str, optional): Either "CIE1931" or "Basler_Bayer". Specifies the color spectral curves.
-
-            Returns:
+        process (str, optional): Either 'ideal', 'raw', 'demosaic'. ideal means return 3 color channels with no spatial resolution loss. Demosaic applies bayer mask and interp, raw returns 1 channel spatial mosaiced measurement.
+        demosaic(boolean, optional): Deprecated. Now replaced by process field. demosaic true sets process = 'demosaic'.
+    Returns:
         RGB: Stack of images with output channels=3
     """
+    if "demosaic" in kwargs:
+        warnings.warn(
+            "The 'demosaic' argument is deprecated and will be removed in future versions. "
+            "Please use the 'process' argument instead, setting process='demosaic'.",
+            DeprecationWarning,
+        )
+        if kwargs["demosaic"]:
+            process = "demosaic"
+
     assert projection in [
         "CIE1931",
         "Basler_Bayer",
     ], "Projection must be one of ['CIE1931', 'Basler_Bayer']."
+    assert process in [
+        "ideal",
+        "raw",
+        "demosaic",
+    ], "Process must be one of ['ideal', 'raw', 'demosaic']."
 
     input_tensor = torch.is_tensor(hsi)
     if not input_tensor:
         hsi = torch.tensor(hsi)
     if tensor_ordering:
         hsi = hsi.transpose(-3, -1).transpose(-3, -2).contiguous()
+
     assert (
         len(wavelength_set_m) == hsi.shape[-1]
     ), "List of wavelengths should match the input channel dimension."
@@ -52,20 +70,27 @@ def hsi_to_rgb(
         spec = spec / np.sum(spec, axis=0, keepdims=True)
     spec = torch.tensor(spec).type_as(hsi)
 
-    rgb = torch.matmul(hsi, spec)
-    scale = torch.amax(rgb, dim=(-3, -2, -1), keepdim=True)
-    if normalize:
-        rgb = rgb / scale
-    if demosaic:
-        rgb = bayer_interpolate(bayer_mask(rgb))
-    if gamma:
-        rgb = gamma_correction(rgb)
-    if tensor_ordering:
-        rgb = rgb.transpose(-3, -1).transpose(-2, -1).contiguous()
-    if not input_tensor:
-        rgb = rgb.cpu().numpy()
+    out = torch.matmul(hsi, spec)
 
-    return rgb
+    if process == "demosaic":
+        out = bayer_interpolate(bayer_mask(out))
+    elif process == "raw":
+        out = bayer_mask(out)
+        out = torch.sum(out, axis=-1, keepdims=True)
+
+    if normalize or gamma:
+        out = out / torch.amax(out, dim=(-3, -2, -1), keepdim=True)
+
+    if gamma:
+        out = gamma_correction(out)
+
+    if tensor_ordering:
+        out = out.transpose(-3, -1).transpose(-2, -1).contiguous()
+
+    if not input_tensor:
+        out = out.cpu().numpy()
+
+    return out
 
 
 def bayer_mask(rgb_img):
@@ -185,3 +210,58 @@ def photons_to_ADU(
         return torch.clip(electrons_signal, min=0)
     else:
         return electrons_signal
+
+
+def rgb_to_hsi_adjoint(
+    rgb,
+    wavelength_set_m,
+    tensor_ordering=False,
+    normalize=True,
+    projection="Basler_Bayer",
+):
+    """Compute the adjoint approximation of rgb to hsi (used for some algorithm initializations)
+
+    Args:
+        rgb (float): Three channel RGB measurement
+        wavelength_set_m (float): List of wavelengths corresponding to the input channel dimension.
+        tensor_ordering (bool, optional): If True, allows passing in a HSI with the more covenient pytorch to_tensor form. Defaults to False.
+        normalize (bool, optional): If true, the returned projection is max normalized to 1.
+        projection (str, optional): Either "CIE1931" or "Basler_Bayer". Specifies the color spectral curves.
+
+    Returns:
+        float: Hyperspectral initialization
+    """
+
+    assert projection.lower() in [
+        "cie1931",
+        "basler_bayer",
+    ], "Projection must be one of ['cie1931', 'basler_bayer']."
+
+    input_tensor = torch.is_tensor(rgb)
+    if not input_tensor:
+        rgb = torch.tensor(rgb)
+
+    if tensor_ordering:
+        rgb = rgb.transpose(-3, -1).transpose(-3, -2).contiguous()  # ... h w c
+    assert 3 == rgb.shape[-1], "Channel dimension must be 3 for adjoint transform"
+
+    if projection.lower() == "cie1931":
+        spec = get_rgb_bar_CIE1931(wavelength_set_m * 1e9)
+    elif projection.lower() == "basler_bayer":
+        spec, _ = get_QETrans_Basler_Bayer(wavelength_set_m * 1e9)
+        spec = np.concatenate([spec[:, 0:1], spec[:, 2:]], axis=-1)
+        spec = spec / np.sum(spec, axis=0, keepdims=True)
+
+    spec = torch.tensor(spec).type_as(rgb)  # [C, 3]
+    out = torch.matmul(rgb, spec.T)
+
+    if normalize:
+        out = out / torch.amax(out, dim=(-3, -2, -1), keepdim=True)
+
+    if tensor_ordering:
+        out = out.transpose(-3, -1).transpose(-2, -1).contiguous()
+
+    if not input_tensor:
+        out = out.cpu().numpy()
+
+    return out

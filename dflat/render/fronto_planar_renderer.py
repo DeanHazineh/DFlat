@@ -55,13 +55,13 @@ class Fronto_Planar_Renderer_Incoherent(nn.Module):
         ## TO be updated and added later
         return meas
 
-    def rgb_measurement(self, meas, wavelength_set_m, bayer_mosaic=False, gamma=True):
+    def rgb_measurement(self, meas, wavelength_set_m, process="demosaic", gamma=True):
         B, P, Z, L, H, W = meas.shape
         meas = hsi_to_rgb(
             rearrange(meas, "B P Z L H W -> (B P Z) H W L", B=B, P=P, Z=Z),
             wavelength_set_m,
-            bayer_mosaic,
-            gamma,
+            gamma=gamma,
+            process=process,
         )
         meas = rearrange(meas, "(B P Z) H W C -> B P Z C H W", B=B, P=P, Z=Z)
         return meas
