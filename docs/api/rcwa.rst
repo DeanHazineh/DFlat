@@ -13,5 +13,6 @@ Public Functions
    :members:
    :undoc-members:
    :show-inheritance:
-   :inherited-members:
+
+   .. automethod:: forward
 
