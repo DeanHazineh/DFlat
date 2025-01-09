@@ -12,7 +12,7 @@
 ![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-![Version](https://img.shields.io/badge/version-4.0.0-blue)
+![Version](https://img.shields.io/badge/version-4.1.0-blue)
 [![PyPI version](https://badge.fury.io/py/dflat-opt.svg)](https://badge.fury.io/py/dflat-opt)
 [![Pytest Workflow](https://github.com/DeanHazineh/DFlat-pytorch/actions/workflows/pytest.yml/badge.svg?branch=main)](https://github.com/DeanHazineh/DFlat-pytorch/actions/workflows/pytest.yml)
 [![codecov](https://codecov.io/gh/DeanHazineh/DFlat/graph/badge.svg?token=3J0LPUJ1OX)](https://codecov.io/gh/DeanHazineh/DFlat)
