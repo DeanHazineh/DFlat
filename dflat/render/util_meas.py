@@ -2,6 +2,8 @@ import torch
 import torch.nn.functional as F
 from einops import rearrange
 import numpy as np
+import warnings
+
 from dflat.render.util_sensor import get_QETrans_Basler_Bayer
 from dflat.render.util_spectral import get_rgb_bar_CIE1931, gamma_correction
 
@@ -14,6 +16,7 @@ def hsi_to_rgb(
     normalize=True,
     projection="Basler_Bayer",
     process="ideal",
+    **kwargs
 ):
     """Converts a batched hyperspectral datacube of shape [minibatch, Height, Width, Channels] to RGB. If tensor_ordering is true,
     input may instead be passed with the more common tensor shape [B, Ch, H, W]. The CIE1931 color matching functions are used by default.
@@ -25,10 +28,20 @@ def hsi_to_rgb(
         tensor_ordering (bool, optional): If True, allows passing in a HSI with the more covenient pytorch to_tensor form. Defaults to False.
         normalize (bool, optional): If true, the returned projection is max normalized to 1.
         projection (str, optional): Either "CIE1931" or "Basler_Bayer". Specifies the color spectral curves.
-        process (str, optional): Either 'idea', 'raw', 'demosaic'. ideal means return 3 color channels with no spatial resolution loss. Demosaic applies bayer mask and interp, raw returns 1 channel spatial mosaiced measurement.
+        process (str, optional): Either 'ideal', 'raw', 'demosaic'. ideal means return 3 color channels with no spatial resolution loss. Demosaic applies bayer mask and interp, raw returns 1 channel spatial mosaiced measurement.
+        demosaic(boolean, optional): Deprecated. Now replaced by process field. demosaic true sets process = 'demosaic'.
     Returns:
         RGB: Stack of images with output channels=3
     """
+    if "demosaic" in kwargs:
+        warnings.warn(
+            "The 'demosaic' argument is deprecated and will be removed in future versions. "
+            "Please use the 'process' argument instead, setting process='demosaic'.",
+            DeprecationWarning,
+        )
+        if kwargs["demosaic"]:
+            process = "demosaic"
+
     assert projection in [
         "CIE1931",
         "Basler_Bayer",
@@ -57,8 +70,7 @@ def hsi_to_rgb(
         spec = spec / np.sum(spec, axis=0, keepdims=True)
     spec = torch.tensor(spec).type_as(hsi)
 
-    rgb = torch.matmul(hsi, spec)
-    scale = torch.amax(rgb, dim=(-3, -2, -1), keepdim=True)
+    out = torch.matmul(hsi, spec)
 
     if process == "demosaic":
         out = bayer_interpolate(bayer_mask(out))
@@ -67,18 +79,18 @@ def hsi_to_rgb(
         out = torch.sum(out, axis=-1, keepdims=True)
 
     if normalize or gamma:
-        rgb = rgb / scale
+        out = out / torch.amax(out, dim=(-3, -2, -1), keepdim=True)
 
     if gamma:
-        rgb = gamma_correction(rgb)
+        out = gamma_correction(out)
 
     if tensor_ordering:
-        rgb = rgb.transpose(-3, -1).transpose(-2, -1).contiguous()
+        out = out.transpose(-3, -1).transpose(-2, -1).contiguous()
 
     if not input_tensor:
-        rgb = rgb.cpu().numpy()
+        out = out.cpu().numpy()
 
-    return rgb
+    return out
 
 
 def bayer_mask(rgb_img):
