@@ -52,7 +52,7 @@ Updated on July 12, 2024 | V3 -> V4
 Detailed documentation for the rewritten package and a new project page will be released in the future. For now, we highlight two resources for developers and researchers:
 - A script used to train neural models can be found in `scripts/trainer.ipynb`. The model architecture is specified in the config.yaml file and you can play around with editing it. 
 - A simple demo of the workflow can be found at `scripts/demo.ipynb`.
-- A demo of field-propagation is given in 'scripts/field_propagation.ipynb'
+- A demo of field-propagation is given in `scripts/field_propagation.ipynb`
 
 ### Pretrained Models and datasets
 
