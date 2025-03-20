@@ -43,7 +43,6 @@ pip install -e .
 
 ## Version Notes
 Updated on July 12, 2024 | V3 -> V4
-- Documentation is still in development :o
 - (v4) An autodifferentiable RCWA field solver class is added. 
 - (v3) Memory problems? Gradient checkpointing is added throughout, reducing memory when using DFlat.
 - (v3) You can now download this package from the PyPi Index!
@@ -55,6 +54,7 @@ Updated on July 12, 2024 | V3 -> V4
 Detailed documentation for the rewritten package and a new project page will be released in the future. For now, we highlight two resources for developers and researchers:
 - A script used to train neural models can be found in `scripts/trainer.ipynb`. The model architecture is specified in the config.yaml file and you can play around with editing it. 
 - A simple demo of the workflow can be found at `scripts/demo.ipynb`.
+- A demo of field-propagation is given in 'scripts/field_propagation.ipynb'
 
 ### Pretrained Models and datasets
 
@@ -79,18 +79,7 @@ For any questions, functionality requests, or other concerns, don't hesitate to 
 
 ## Credits and Acknowledgements:
 This work was funded in part by the NSF and SONY.
-If you utilize DFlat or included data sets for your own work, please consider citing it by using either:
-
-```
-@INPROCEEDINGS{10233735,
-  author={Hazineh, Dean and Lim, Soon Wei Daniel and Guo, Qi and Capasso, Federico and Zickler, Todd},
-  booktitle={2023 IEEE International Conference on Computational Photography (ICCP)},
-  title={Polarization Multi-Image Synthesis with Birefringent Metasurfaces},
-  year={2023},
-  pages={1-12},
-  doi={10.1109/ICCP56744.2023.10233735}}
-```
-
+If you utilize DFlat or included data sets for your own work, please consider citing it by using:
 ```
 @misc{hazineh2022dflat,
       title={D-Flat: A Differentiable Flat-Optics Framework for End-to-End Metasurface Visual Sensor Design},
